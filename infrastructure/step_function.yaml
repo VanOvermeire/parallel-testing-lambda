@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Step function with lambdas for testing
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+#  S3Bucket:
+#    Type: String
+#  S3Path:
+#    Type: String
+  ImageUri:
+    Type: String
+
+Resources:
+  StepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        StartAt: Test
+        States:
+          Test:
+            Type: Map
+            ItemsPath: "$.tasks"
+            Iterator:
+              StartAt: TestLambda
+              States:
+                TestLambda:
+                  Type: Task
+                  Resource: !GetAtt GenericTest.Arn
+                  OutputPath: "$.Payload"
+            Resource: !GetAtt GenericTest.Arn
+#            Next: CheckResults
+            End: true
+#          CheckResults:
+#            Type: Task
+#            Resource: !GetAtt Checker.Arn
+#            End: true
+      Role: !GetAtt StateExecutionIAMRole.Arn
+
+  GenericTest:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Ref ImageUri
+      Timeout: 120
+#      Environment:
+#        Variables:
+#          BUCKET: !Ref S3Bucket
+      Policies:
+        - AWSLambdaExecute
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "s3:Get*"
+                - "s3:List*"
+              Resource:
+                - "*"
+
+#  Checker:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      Handler: index.handler
+#      MemorySize: 4096
+#      Runtime: nodejs12.x
+#      Timeout: 120
+#      CodeUri:
+#        Bucket: !Ref S3Bucket
+#        Key: !Sub "${S3Path}/e2e.zip"
+#      Environment:
+#        Variables:
+#          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+#      Policies:
+#        - AWSLambdaExecute
+
+  StateExecutionIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "states.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+
+  StateExecutionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-end-to-end-statemachine-policy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "lambda:InvokeFunction"
+            Resource:
+              - !GetAtt GenericTest.Arn
+      Roles:
+        - !Ref StateExecutionIAMRole
+
+Outputs:
+  StarterLambda:
+    Description: "Name of our step function"
+    Value: !Ref StepFunction

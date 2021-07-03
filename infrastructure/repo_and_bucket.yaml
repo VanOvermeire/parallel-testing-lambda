@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ECR Repository for Docker Images
+
+Resources:
+  LambdaTestingRepository:
+    Type: AWS::ECR::Repository
+  ResourcesBucket:
+    Type: AWS::S3::Bucket
+
+Outputs:
+  RepoName:
+    Value: !Ref LambdaTestingRepository
+    Description: Name of the ECR repo
+  BucketName:
+    Value: !Ref ResourcesBucket
+    Description: Name of the resources bucket
