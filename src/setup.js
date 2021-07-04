@@ -5,11 +5,14 @@ const {setupQuestions} = require("./helpers/questions");
 const addProject = (currentConfig, answers) => {
     const projects = currentConfig.projects || {};
     const path = answers.projectPath;
+    const commands = answers.commands.split(',');
+
     const projectName = path.substr(path.lastIndexOf('/') + 1, path.length)
     projects[projectName] = {
         name: projectName,
         path,
         firstRun: true,
+        commands,
     };
     return projects;
 }

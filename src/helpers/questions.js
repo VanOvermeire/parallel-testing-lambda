@@ -11,6 +11,12 @@ const setupQuestions = [
         name: 'projectPath',
         message: 'What is the (absolute) path to your project?',
     },
+    {
+        type: 'input',
+        name: 'commands',
+        message: 'What npm commands do you want to run?',
+        default: 'install',
+    },
     // {
     //     type: 'list',
     //     name: 'logoUri',
