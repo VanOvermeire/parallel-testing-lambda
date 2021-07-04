@@ -1,6 +1,7 @@
 const {getCurrentConfig} = require("./helpers/config");
 const { program } = require('commander');
 
+// TODO ask what commands to run - but also offer defaults in setup
 const runProgram = async () => {
     const config = await getCurrentConfig();
 

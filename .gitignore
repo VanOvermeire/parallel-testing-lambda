@@ -1,4 +1,4 @@
 .idea
 *.iml
 node_modules
-lambdaimage/application
+src/application

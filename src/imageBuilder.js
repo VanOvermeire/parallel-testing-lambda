@@ -1,23 +1,16 @@
-// const fsPromises = require('fs/promises');
 const { readdir, readFile, writeFile } = require('fs/promises');
 const { resolve } = require('path');
 const {execSync} = require('child_process');
 
 const copydir = require('copy-dir');
-const {deployStacks} = require("./helpers/deployer");
+const {deploySfInfra} = require("./helpers/deployer");
+const {deployBaseInfra} = require("./helpers/deployer");
 
-// TODO different name
-// TODO get dirs and ecr from somewhere
-const ourDirectory = '/Users/vanovsa/Documents/parallel-testing-typescript/lambdaimage/application';
-const repoLocation = '/Users/vanovsa/Documents/vrt-oidc-client-bff';
-const ecr = '262438358359.dkr.ecr.eu-west-1.amazonaws.com';
-const region = 'eu-west-1'; // default
-const containerName = 'lambda-image-repo'; // pick one. lambda-tester maybe
+// const ourDirectory = '/Users/vanovsa/Documents/parallel-testing-typescript/lambdaimage/application';
+// const containerName = 'lambda-image-repo'; // pick one. lambda-tester maybe
+const CONTAINER_NAME = 'lambda-tester';
 
 process.env.PATH = process.env.PATH + ':/usr/local/bin'; // needed for execSync?
-
-// TODO list requirements
-//  npm, aws account, aws cli, docker
 
 // TODO full basic flow
 //  0) ask questions
@@ -42,8 +35,8 @@ const docker = () => {
 }
 
 // not taking into account stuff like *.iml
-const getGitIgnoreList = async (gitignoreLocation) => {
-    const res = await readFile(gitignoreLocation);
+const getGitIgnoreList = async (projectPath) => {
+    const res = await readFile(`${projectPath}/.gitignore`);
     return res.toString().split('\n')
         .map(el => el.trim())
         .filter(el => el)
@@ -69,7 +62,7 @@ async function getFiles(dir, toIgnore) {
 }
 
 const copy = (directory, toIgnore) => {
-    copydir.sync(directory, ourDirectory, {
+    copydir.sync(directory, __dirname, {
         filter: (stat, filepath, filename) => !(filename === '.git' || filename === 'node_modules' || toIgnore.some(i => i === filename))
     });
 };
@@ -84,8 +77,8 @@ const isPackageJson = (file) => file.endsWith('package.json');
 const replaceDir = (currentDir, newDir) => (file) => file.replace(currentDir, newDir);
 
 const runNpmInstall = (directory, allFiles) => {
-    findPackageJsonDirsInCopy(directory, ourDirectory)(allFiles).forEach(dir => {
-        console.log(`running npm install for ${dir.replace(ourDirectory, '')}`);
+    findPackageJsonDirsInCopy(directory, __dirname)(allFiles).forEach(dir => {
+        console.log(`running npm install for ${dir.replace(__dirname, '')}`);
         // const res = execSync('npm i', { cwd: dir })
         // console.log(res.toString())
     })
@@ -106,7 +99,7 @@ const doesNotHaveModifiedAsDependency = (modify, fileContentAsString) => {
 const modifyPackageJsons = async (directory, allFiles) => {
     const toModify = ['jest']; // should somehow build a proper list
 
-    for (const filename of findPackageJsonFilesInCopy(directory, ourDirectory)(allFiles)) {
+    for (const filename of findPackageJsonFilesInCopy(directory, __dirname)(allFiles)) {
         const fileContent = await readFile(filename);
         let fileContentAsString = fileContent.toString();
 
@@ -120,15 +113,39 @@ const modifyPackageJsons = async (directory, allFiles) => {
     }
 }
 
-const script = async (directory) => {
-    await deployStacks();
-    // const toIgnore = await getGitIgnoreList(`${directory}/.gitignore`);
-    // copy(directory, toIgnore);
+const script = async (projectInfo) => {
+    const updatedProjectInfo = {...projectInfo};
+
+    // console.log(__dirname);
+    if(projectInfo.firstRun) {
+        const { bucketName, repoName } = await deployBaseInfra(projectInfo);
+        updatedProjectInfo.bucketName = bucketName;
+        updatedProjectInfo.repoName = repoName;
+    }
+
+    const toIgnore = await getGitIgnoreList(projectInfo.path);
+    copy(projectInfo.path, toIgnore);
     // const allFiles = await getFiles(directory, toIgnore)
     // runNpmInstall(directory, allFiles);
     // await modifyPackageJsons(directory, allFiles);
     // docker();
+
+    // if(projectInfo.firstRun) {
+    //     const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
+    //     updatedProjectInfo.sfArn = stepFunctionArn;
+    //     updatedProjectInfo.firstRun = false;
+    // }
+
+    return updatedProjectInfo;
 }
 
-script(repoLocation)
+// TODO remove
+const exampleProjectInfo = {
+    name: 'bff',
+    region: 'eu-west-1',
+    path: "/Users/vanovsa/Documents/vrt-oidc-client-bff",
+    firstRun: true,
+};
+
+script(exampleProjectInfo)
     .then(console.log)

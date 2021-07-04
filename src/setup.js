@@ -7,6 +7,7 @@ const addProject = (currentConfig, answers) => {
     const path = answers.projectPath;
     const projectName = path.substr(path.lastIndexOf('/') + 1, path.length)
     projects[projectName] = {
+        name: projectName,
         path,
         firstRun: true,
     };

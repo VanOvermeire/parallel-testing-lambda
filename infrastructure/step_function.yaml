@@ -102,6 +102,6 @@ Resources:
         - !Ref StateExecutionIAMRole
 
 Outputs:
-  StarterLambda:
+  StepFunctionArn:
     Description: "Name of our step function"
     Value: !Ref StepFunction

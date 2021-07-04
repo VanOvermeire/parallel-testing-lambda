@@ -1,9 +1,15 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: ECR Repository for Docker Images
 
+Parameters:
+  ProjectName:
+    Type: String
+
 Resources:
   LambdaTestingRepository:
     Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub '${ProjectName}-lambda-tester-repo'
   ResourcesBucket:
     Type: AWS::S3::Bucket
 
