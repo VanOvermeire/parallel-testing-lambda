@@ -3,12 +3,11 @@ const { resolve } = require('path');
 const {execSync} = require('child_process');
 
 const copydir = require('copy-dir');
-const {deploySfInfra} = require("./helpers/deployer");
-const {deployBaseInfra} = require("./helpers/deployer");
+const {CONTAINER_NAME} = require("./helpers/constants");
+const {deployBaseInfra, deploySfInfra} = require("./helpers/deployer");
 
 // const ourDirectory = '/Users/vanovsa/Documents/parallel-testing-typescript/lambdaimage/application';
 // const containerName = 'lambda-image-repo'; // pick one. lambda-tester maybe
-const CONTAINER_NAME = 'lambda-tester';
 
 process.env.PATH = process.env.PATH + ':/usr/local/bin'; // needed for execSync?
 
@@ -29,8 +28,8 @@ process.env.PATH = process.env.PATH + ':/usr/local/bin'; // needed for execSync?
 //  if deps change, need to upload new container
 
 
-const docker = () => {
-    const res = execSync(`./docker_run.sh ${ecr} ${containerName} ${region}`);
+const docker = (projectInfo) => {
+    const res = execSync(`./docker_run.sh ${projectInfo.repoName} ${CONTAINER_NAME} ${projectInfo.region}`);
     console.log(res.toString()); // TODO remove?
 }
 
@@ -61,8 +60,8 @@ async function getFiles(dir, toIgnore) {
     return Array.prototype.concat(...files);
 }
 
-const copy = (directory, toIgnore) => {
-    copydir.sync(directory, __dirname, {
+const copy = (fromDirectory, toDirectory, toIgnore) => {
+    copydir.sync(fromDirectory, toDirectory, {
         filter: (stat, filepath, filename) => !(filename === '.git' || filename === 'node_modules' || toIgnore.some(i => i === filename))
     });
 };
@@ -79,10 +78,10 @@ const replaceDir = (currentDir, newDir) => (file) => file.replace(currentDir, ne
 const runNpmInstall = (directory, allFiles) => {
     findPackageJsonDirsInCopy(directory, __dirname)(allFiles).forEach(dir => {
         console.log(`running npm install for ${dir.replace(__dirname, '')}`);
-        // const res = execSync('npm i', { cwd: dir })
-        // console.log(res.toString())
+        const res = execSync('npm i', {cwd: dir});
+        console.log(res.toString()); // TODO remove?
     })
-}
+};
 
 // too specific - in general should just point to wherever jest etc was installed
 const modifyPackageJsonString = (modify, fileContentAsString) => {
@@ -116,18 +115,18 @@ const modifyPackageJsons = async (directory, allFiles) => {
 const script = async (projectInfo) => {
     const updatedProjectInfo = {...projectInfo};
 
-    // console.log(__dirname);
     if(projectInfo.firstRun) {
         const { bucketName, repoName } = await deployBaseInfra(projectInfo);
         updatedProjectInfo.bucketName = bucketName;
         updatedProjectInfo.repoName = repoName;
     }
 
+    const destinationDirectory = `${__dirname}/application`;
     const toIgnore = await getGitIgnoreList(projectInfo.path);
-    copy(projectInfo.path, toIgnore);
-    // const allFiles = await getFiles(directory, toIgnore)
-    // runNpmInstall(directory, allFiles);
-    // await modifyPackageJsons(directory, allFiles);
+    // copy(projectInfo.path, destinationDirectory, toIgnore);
+    const allFiles = await getFiles(destinationDirectory, toIgnore);
+    runNpmInstall(destinationDirectory, allFiles);
+    // await modifyPackageJsons(destinationDirectory, allFiles);
     // docker();
 
     // if(projectInfo.firstRun) {

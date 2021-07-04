@@ -1,9 +1,8 @@
 const { readFile } = require('fs/promises');
 const AWS = require('aws-sdk');
+const {CONTAINER_NAME, DEFAULT_REGION} = require("./constants");
 
-const region = 'eu-west-1'; // default
-
-const cloudformation = new AWS.CloudFormation({ region });
+const cloudformation = new AWS.CloudFormation({ region: DEFAULT_REGION });
 
 const waitForStack = async (stackName, resolve) => {
     const okStatus = ["CREATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_COMPLETE"]
@@ -115,7 +114,7 @@ const deploySfInfra = async (projectInfo) => {
         Parameters: [
             {
                 ParameterKey: 'ImageUri',
-                ParameterValue: projectInfo.repoName
+                ParameterValue: `${projectInfo.repoName}/${CONTAINER_NAME}`,
             }
         ],
         TemplateBody: sfInfra.toString(),
