@@ -6,6 +6,7 @@ const {execSync} = require('child_process');
 const copydir = require('copy-dir');
 const {deployStacks} = require("./helpers/deployer");
 
+// TODO different name
 // TODO get dirs and ecr from somewhere
 const ourDirectory = '/Users/vanovsa/Documents/parallel-testing-typescript/lambdaimage/application';
 const repoLocation = '/Users/vanovsa/Documents/vrt-oidc-client-bff';
