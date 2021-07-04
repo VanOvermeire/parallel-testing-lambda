@@ -1,26 +1,17 @@
 const inquirer = require('inquirer');
-const { readFile, writeFile } = require('fs/promises');
-const {setupQuestions} = require("./helpers/setupQuestions");
+const {writeConfig, getCurrentConfig} = require("./helpers/config");
+const {setupQuestions} = require("./helpers/questions");
 
-const getCurrentConfig = async () => {
-    try {
-        const fileContent = await readFile('./config.json');
-        return JSON.parse(fileContent.toString());
-    } catch (err) {
-        return {};
-    }
-}
-
-const setupProjects = (currentConfig, answers) => {
+const addProject = (currentConfig, answers) => {
     const projects = currentConfig.projects || {};
     const path = answers.projectPath;
     const projectName = path.substr(path.lastIndexOf('/') + 1, path.length)
     projects[projectName] = {
-        path
+        path,
+        firstRun: true,
     };
     return projects;
 }
-
 
 const handleSetup = async () => {
     let questions = setupQuestions;
@@ -33,10 +24,10 @@ const handleSetup = async () => {
     const answers = await inquirer.prompt(questions);
 
     const region = answers.region || currentConfig.region;
-    const projects = setupProjects(currentConfig, answers);
+    const projects = addProject(currentConfig, answers);
     const newConfig = {region, projects};
 
-    await writeFile('./config.json', JSON.stringify(newConfig));
+    await writeConfig(newConfig);
 };
 
 handleSetup()
