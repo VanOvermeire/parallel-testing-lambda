@@ -17,6 +17,9 @@ Outputs:
   RepoName:
     Value: !Ref LambdaTestingRepository
     Description: Name of the ECR repo
+  RepoUri:
+    Value: !GetAtt LambdaTestingRepository.RepositoryUri
+    Description: URI of the ECR repo
   BucketName:
     Value: !Ref ResourcesBucket
     Description: Name of the resources bucket

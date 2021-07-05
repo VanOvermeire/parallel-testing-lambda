@@ -1,9 +1,7 @@
-const {runNpmInstall} = require("./helpers/fileHandlers");
-const {getGitIgnoreList} = require("./helpers/fileHandlers");
+const {copy} = require("./helpers/fileHandlers");
 const {execSync} = require('child_process');
 
-const {getFiles} = require("./helpers/fileHandlers");
-const {CONTAINER_NAME} = require("./helpers/constants");
+const {getFiles, getGitIgnoreList, modifyPackageJsons, runNpmInstall, gatherAllDependencies} = require("./helpers/fileHandlers");
 const {deployBaseInfra, deploySfInfra} = require("./helpers/deployer");
 
 process.env.PATH = process.env.PATH + ':/usr/local/bin'; // needed for execSync
@@ -11,49 +9,75 @@ process.env.PATH = process.env.PATH + ':/usr/local/bin'; // needed for execSync
 const currentDir = __dirname;
 const destinationDir = `${currentDir}/application`;
 
-// TODO full basic flow
-//  0) ask questions
-//  1) create ecr repo if it does not exist yet
-//  2) build the docker image
-//  3) build stack for lambdas/step function/etc.
-//  4) run stuff on command
-
-// TODO command line stuff
-//  should allow config
-//  should keep hidden config with among other things the deps per project (repo location? repo name?)
-//  enough logging
-
-// TODO scenario after update of file
-//  should then keep an eye on commits - if a file changes, upload it to s3 and tell lambda to replace original file
-//  if deps change, need to upload new container
-
 const docker = (projectInfo) => {
-    const res = execSync(`./docker_run.sh ${projectInfo.repoName} ${CONTAINER_NAME} ${projectInfo.region}`);
+    console.log(`Running docker build, tag, push with ${projectInfo.repoUri} and name ${projectInfo.repoName}. This might take a while`);
+    const res = execSync(`./docker_run.sh ${projectInfo.repoUri} ${projectInfo.repoName} ${projectInfo.region}`);
     console.log(res.toString()); // TODO remove?
-}
+};
 
+const depsEqual = (oldDeps, newDeps) => {
+    const oldDepsAsArrays = Object.entries(oldDeps).map(entry => entry[0] + entry[1]).sort();
+    const newDepsAsArrays = Object.entries(newDeps).map(entry => entry[0] + entry[1]).sort();
+
+    return oldDepsAsArrays.length === newDepsAsArrays.length &&
+        oldDepsAsArrays.every((val, index) => val === newDepsAsArrays[index]);
+};
+
+const haveDependenciesChanged = (oldInfo, newInfo) => {
+    const oldDependencies = oldInfo.allDependencies;
+    const newDependencies = newInfo.allDependencies;
+
+    if(oldDependencies.length !== newDependencies.length) {
+        return true;
+    }
+    const oldSubProjectNames = oldDependencies.map(d => d.name);
+    const newSubProjectNames = newDependencies.map(d => d.name);
+
+    if(!oldSubProjectNames.every(old => newSubProjectNames.includes(old))) {
+        return true;
+    }
+
+    oldDependencies.every(dep => {
+        const correctNewDependencies = newDependencies.filter(d => d.name === dep.name).shift() || {};
+
+        return !depsEqual(dep.dependencies, correctNewDependencies.dependencies)
+            || !depsEqual(dep.devDependencies, correctNewDependencies.devDependencies)
+    });
+
+    return false;
+};
+
+// TODO more changes needed to handle multiple projects (like stack names)
 const script = async (projectInfo) => {
     const updatedProjectInfo = {...projectInfo};
 
-    // if(projectInfo.firstRun) {
-    //     const { bucketName, repoName } = await deployBaseInfra(projectInfo);
-    //     updatedProjectInfo.bucketName = bucketName;
-    //     updatedProjectInfo.repoName = repoName;
-    // }
+    if(projectInfo.firstRun) {
+        const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
+        updatedProjectInfo.bucketName = bucketName;
+        updatedProjectInfo.repoName = repoName;
+        updatedProjectInfo.repoUri = repoUri;
+    }
 
-    const toIgnore = await getGitIgnoreList(projectInfo.path);
-    // before copy first delete the application dir
+    // const toIgnore = await getGitIgnoreList(projectInfo.path);
     // copy(projectInfo.path, destinationDir, toIgnore);
-    const allFiles = await getFiles(destinationDir, toIgnore);
-    runNpmInstall(allFiles);
+    // const allFiles = await getFiles(destinationDir, toIgnore);
     // await modifyPackageJsons(destinationDir, allFiles);
-    // docker();
+    // updatedProjectInfo.allDependencies = await gatherAllDependencies(allFiles);
 
-    // if(projectInfo.firstRun) {
-    //     const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
-    //     updatedProjectInfo.sfArn = stepFunctionArn;
-    //     updatedProjectInfo.firstRun = false;
+    // if(projectInfo.firstRun || haveDependenciesChanged(projectInfo, updatedProjectInfo)) {
+    //     console.log('have changed')
+    //     runNpmInstall(allFiles);
+    //     docker(updatedProjectInfo);
+    // } else {
+    //     console.log('have not changed')
+    //     // TODO if no change - no npm install  or docker - just s3 upload
     // }
+
+    if(projectInfo.firstRun) {
+        const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
+        updatedProjectInfo.sfArn = stepFunctionArn;
+        updatedProjectInfo.firstRun = false;
+    }
 
     return updatedProjectInfo;
 }
@@ -64,7 +88,20 @@ const exampleProjectInfo = {
     region: 'eu-west-1',
     path: "/Users/vanovsa/Documents/vrt-oidc-client-bff",
     firstRun: true,
+    allDependencies: [
+        {
+            name: 'autologin',
+            dependencies: { 'fp-ts': '^2.8.3' },
+            devDependencies: {}
+        }
+    ],
 };
 
 script(exampleProjectInfo)
-    .then(console.log)
+    .then(res => {
+        console.log(res)
+    });
+
+module.exports = {
+    script,
+};

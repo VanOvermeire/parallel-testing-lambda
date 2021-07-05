@@ -1,6 +1,7 @@
 const { readdir, readFile, writeFile } = require('fs/promises');
-const { resolve } = require('path');
+const { resolve, relative } = require('path');
 const copydir = require('copy-dir');
+const {execSync} = require('child_process');
 
 const replaceDir = (currentDir, newDir) => (file) => file.replace(currentDir, newDir);
 
@@ -46,7 +47,7 @@ const copy = (fromDirectory, toDirectory, toIgnore) => {
     });
 };
 
-// too specific - in general should just point to wherever jest etc was installed
+// TODO specific for bff - in general should just point to wherever jest etc was installed
 const modifyPackageJsonString = (modify, fileContentAsString) => {
     return fileContentAsString.replace(modify, `../../node_modules/${modify}/bin/${modify}.js`);
 };
@@ -58,17 +59,22 @@ const doesNotHaveModifiedAsDependency = (modify, fileContentAsString) => {
         .some(entry => entry === modify);
 }
 
-const modifyPackageJsons = async (directory, allFiles) => {
-    const toModify = ['jest']; // should somehow build a proper list
+const modifyPackageJsons = async (applicationDir, allFiles) => {
+    const toModify = ['jest']; // TODO should somehow build a proper list (also add eslint)
 
-    for (const filename of findPackageJsonFilesInCopy(directory, __dirname)(allFiles)) {
+    const packageJsonFiles = findPackageJsonFilesInCopy(allFiles);
+
+    for (const filename of packageJsonFiles) {
         const fileContent = await readFile(filename);
         let fileContentAsString = fileContent.toString();
 
         for(const modify of toModify) {
             if(doesNotHaveModifiedAsDependency(modify, fileContentAsString)) {
                 console.log(`${modify} is set globally and that will not work in lambda - pointing to actual location`); // OR install globally
-                fileContentAsString = modifyPackageJsonString(modify, fileContentAsString);
+                const refTo = `${applicationDir}/node_modules/${modify}/bin/${modify}.js`;
+                const pathToDir = filename.replace('/package.json', '');
+                const relativePath = relative(pathToDir, refTo);
+                fileContentAsString = fileContentAsString.replace(modify, relativePath);
             }
         }
         await writeFile(filename, fileContentAsString);
@@ -78,14 +84,27 @@ const modifyPackageJsons = async (directory, allFiles) => {
 const runNpmInstall = (allFiles) => {
     findPackageJsonDirsInCopy(allFiles).forEach(dir => {
         console.log(`running npm install for ${dir}`);
-        // const res = execSync('npm i', {cwd: dir}); // maybe with Promises -> parallel?
-        // console.log(res.toString()); // TODO remove?
-    })
+        execSync('npm i', {cwd: dir}); // maybe with Promises -> parallel?
+    });
+};
+
+const gatherAllDependencies = async (allFiles) => {
+    return await Promise.all(findPackageJsonFilesInCopy(allFiles).map(name => readFile(name)))
+        .then(files => files
+            .map(f => f.toString())
+            .map(JSON.parse)
+            .map(f => ({
+                name: f.name,
+                dependencies: f.dependencies || {},
+                devDependencies: f.devDependencies || {},
+            }))
+        );
 };
 
 module.exports = {
     getGitIgnoreList,
     getFiles,
+    gatherAllDependencies,
     copy,
     modifyPackageJsons,
     runNpmInstall,

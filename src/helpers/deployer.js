@@ -63,8 +63,9 @@ const findBaseOutputs = async (stackName) => {
     const outputs = await getStackOutputs(stackName);
     const bucketName = getOutputValueForKey('BucketName', outputs);
     const repoName = getOutputValueForKey('RepoName', outputs);
+    const repoUri = getOutputValueForKey('RepoUri', outputs);
 
-    return { bucketName, repoName };
+    return { bucketName, repoName, repoUri };
 }
 
 const findSfOutputs = async (stackName) => {
@@ -114,7 +115,7 @@ const deploySfInfra = async (projectInfo) => {
         Parameters: [
             {
                 ParameterKey: 'ImageUri',
-                ParameterValue: `${projectInfo.repoName}/${CONTAINER_NAME}`,
+                ParameterValue: `${projectInfo.repoUri}:latest`,
             }
         ],
         TemplateBody: sfInfra.toString(),

@@ -4,14 +4,18 @@ set -eo pipefail
 
 # runs the docker build, tagging and pushing
 
-ecr=$1
-container_name=$2
+repo_uri=$1
+repo_name=$2
 region=$3
 
-echo "Running docker build, tag, push with ${ecr} and ${container_name}" # TODO remove
+mv application image
+
 cd image
-aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${ecr}"
-docker build -t "${container_name}" .
-docker tag lambda-image-repo:latest "${ecr}"/"${container_name}":latest
-docker push "${ecr}"/"${container_name}":latest
+aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${repo_uri}"
+docker build -t "${repo_name}" .
+docker tag "${repo_name}":latest "${repo_uri}":latest
+docker push "${repo_uri}":latest
+
+rm -rf application
+
 cd ..

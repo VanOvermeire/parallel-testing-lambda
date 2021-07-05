@@ -1,5 +1,6 @@
-const {getCurrentConfig} = require("./helpers/config");
-const { program } = require('commander');
+const {program} = require('commander');
+const {script} = require("./imageBuilder");
+const {getCurrentConfig, writeConfig} = require("./helpers/config");
 
 // TODO ask what commands to run - but also offer defaults in setup
 const runProgram = async () => {
@@ -10,8 +11,8 @@ const runProgram = async () => {
     } else {
         program.version('0.0.1');
         program
-            // .option('-d, --debug', 'output extra debugging')
-            .requiredOption('-p, --project <projectName>', 'Name of the project you want to test');
+            .requiredOption('-p, --project <projectName>', 'Name of the project you want to test')
+            .option('-c, --commands <commandName>', 'Test commands to run (will replace defaults)');
         program.parse(process.argv);
 
         const options = program.opts();
@@ -21,12 +22,13 @@ const runProgram = async () => {
         if (project.length === 0) {
             console.warn(`Did not find a project with that name. List of projects: ${currentProjects}`);
         } else {
-            console.log('running');
-            console.log(project);
-            // pass this to our script
-            // check if project has already run in config
-            // if not, do first run with infra etc.
-            // (if already run, check whether any dependencies have changed)
+            const projectConfig = {
+                ...config.projects[project],
+                commands: typeof options.commands === 'string' ? options.commands.split(',') : config.projects[project].commands
+            };
+            const updatedProjectConfig = script(projectConfig);
+            config.projects = {...config.projects, updatedProjectConfig};
+            await writeConfig(config);
         }
     }
 };

@@ -11,7 +11,7 @@ Parameters:
     Type: String
 
 Resources:
-  StepFunction:
+  LambdaTesterStepFunction:
     Type: AWS::Serverless::StateMachine
     Properties:
       Definition:
@@ -27,7 +27,7 @@ Resources:
                   Type: Task
                   Resource: !GetAtt GenericTest.Arn
                   OutputPath: "$.Payload"
-            Resource: !GetAtt GenericTest.Arn
+                  End: true
 #            Next: CheckResults
             End: true
 #          CheckResults:
@@ -104,4 +104,4 @@ Resources:
 Outputs:
   StepFunctionArn:
     Description: "Name of our step function"
-    Value: !Ref StepFunction
+    Value: !Ref LambdaTesterStepFunction

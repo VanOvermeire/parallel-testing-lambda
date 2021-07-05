@@ -15,19 +15,8 @@ const setupQuestions = [
         type: 'input',
         name: 'commands',
         message: 'What npm commands do you want to run?',
-        default: 'install',
+        default: 'test',
     },
-    // {
-    //     type: 'list',
-    //     name: 'logoUri',
-    //     message: 'Logo?',
-    //     choices: [
-    //         'default',
-    //         'sporza',
-    //         'stubru',
-    //     ],
-    //     default: 0,
-    // },
 ];
 
 module.exports = {
