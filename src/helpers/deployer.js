@@ -18,7 +18,7 @@ const waitForStack = async (stackName, resolve) => {
     } else if (!okStatus.includes(status)) {
         setTimeout(async () => {
             await waitForStack(stackName, resolve);
-        }, 5000)
+        }, 3000)
     } else {
         console.log(`${stackName} deployed. Status: ${status}`);
         return resolve();

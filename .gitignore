@@ -2,6 +2,6 @@
 *.iml
 node_modules
 
-src/config
+src/config.json
 src/application
 src/image/application
