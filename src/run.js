@@ -31,7 +31,7 @@ const runProgram = async () => {
     const config = await getCurrentConfig();
 
     if (!config || !config.projects) {
-        console.warn('No config or projects found - please run setup first');
+        console.warn('No config or projects found - please run setup.js first');
     } else {
         program.version('0.0.1');
         program

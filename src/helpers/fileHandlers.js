@@ -22,6 +22,7 @@ const findPackageJsonDirsInCopy = (allFiles) => findPackageJsonDirs(allFiles);
 const findPackageJsonFiles = (allFiles) => allFiles.filter(isPackageJson);
 const findPackageJsonFilesInCopy = (allFiles) => findPackageJsonFiles(allFiles);
 
+// ignore probably not really needed since we filter out those files in the copy
 async function getFiles(dir, toIgnore) {
     const entries = await readdir(dir, {withFileTypes: true});
     const files = await Promise.all(entries.map((entry) => {
