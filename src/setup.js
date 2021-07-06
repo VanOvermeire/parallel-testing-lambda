@@ -18,6 +18,7 @@ const addProject = (currentConfig, answers) => {
         path,
         firstRun: true,
         commands,
+        region: answers.region,
     };
     return projects;
 }
@@ -26,17 +27,16 @@ const handleSetup = async () => {
     let questions = setupQuestions;
     let currentConfig = await getCurrentConfig();
 
-    if (currentConfig.region) {
-        questions = questions.filter(q => q.name !== 'region');
-    }
-
     const answers = await inquirer.prompt(questions);
 
-    const region = answers.region || currentConfig.region;
+    // const region = answers.region || currentConfig.region;
     const projects = addProject(currentConfig, answers);
-    const newConfig = {region, projects};
+    const newConfig = {
+        projects
+    };
 
     await writeConfig(newConfig);
+    console.log('Done with config, ready to start running tests.');
 };
 
 handleSetup()

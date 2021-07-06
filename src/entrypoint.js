@@ -9,8 +9,15 @@ function showListIfRequested(options, config) {
     }
 }
 
-function getCommands(options) {
-    const commands = typeof options.commands === 'string' ? options.commands.split(',') : config.projects[project].commands;
+function exitIfNoProjectsFound(currentProjects, projectName) {
+    if (projectName.length === 0) {
+        console.warn(`Did not find a project with that name. List of projects: ${currentProjects}`);
+        process.exit(1);
+    }
+}
+
+function getCommands(options, config, projectName) {
+    const commands = typeof options.commands === 'string' ? options.commands.split(',') : config.projects[projectName].commands;
 
     if (commands.includes('install')) {
         console.warn('Cannot run npm install within lambda! Exiting without finishing config');
@@ -38,21 +45,20 @@ const runProgram = async () => {
         showListIfRequested(options, config);
 
         const currentProjects = Object.keys(config.projects);
-        const project = currentProjects.filter(p => p === options.project);
+        const projectName = currentProjects.filter(p => p === options.project);
 
-        if (project.length === 0) {
-            console.warn(`Did not find a project with that name. List of projects: ${currentProjects}`);
-            process.exit(1);
-        } else {
-            const commands = getCommands(options);
-            const projectConfig = {
-                ...config.projects[project],
-                commands,
-            };
-            const updatedProjectConfig = script(projectConfig);
-            config.projects = {...config.projects, updatedProjectConfig};
-            await writeConfig(config);
-        }
+        exitIfNoProjectsFound(currentProjects, projectName);
+
+        const commands = getCommands(options, config, projectName);
+        const projectConfig = {
+            ...config.projects[projectName],
+            commands,
+        };
+        console.log(`Running for ${projectName} with commands ${commands}...`);
+        const updatedProjectConfig = await script(projectConfig);
+        console.log('Updating configuration after run...');
+        config.projects[projectName] = updatedProjectConfig;
+        await writeConfig(config);
     }
 };
 

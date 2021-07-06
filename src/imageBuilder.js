@@ -48,65 +48,64 @@ const haveDependenciesChanged = (oldInfo, newInfo) => {
     return false;
 };
 
-// TODO more changes needed to handle multiple projects (like stack names)
 const script = async (projectInfo) => {
     const updatedProjectInfo = {...projectInfo};
 
-    // if(projectInfo.firstRun) {
-    //     const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
-    //     updatedProjectInfo.bucketName = bucketName;
-    //     updatedProjectInfo.repoName = repoName;
-    //     updatedProjectInfo.repoUri = repoUri;
-    // }
+    if(projectInfo.firstRun) {
+        console.log('First run. Need to create basic infrastructure.');
+        const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
+        updatedProjectInfo.bucketName = bucketName;
+        updatedProjectInfo.repoName = repoName;
+        updatedProjectInfo.repoUri = repoUri;
+    }
 
-    // const toIgnore = await getGitIgnoreList(projectInfo.path);
-    // copy(projectInfo.path, destinationDir, toIgnore);
-    // const allFiles = await getFiles(destinationDir, toIgnore);
-    // await modifyPackageJsons(destinationDir, allFiles);
-    // updatedProjectInfo.allDependencies = await gatherAllDependencies(allFiles);
+    const toIgnore = await getGitIgnoreList(projectInfo.path);
+    copy(projectInfo.path, destinationDir, toIgnore);
+    const allFiles = await getFiles(destinationDir, toIgnore);
+    await modifyPackageJsons(destinationDir, allFiles);
+    updatedProjectInfo.allDependencies = await gatherAllDependencies(allFiles);
 
-    // if(projectInfo.firstRun || haveDependenciesChanged(projectInfo, updatedProjectInfo)) {
-    //     console.log('have changed')
-    //     runNpmInstall(allFiles);
-    //     docker(updatedProjectInfo);
-    // } else {
-    //     console.log('have not changed')
-    //     // TODO if no change - no npm install  or docker - just s3 upload
-    // }
+    if(projectInfo.firstRun || haveDependenciesChanged(projectInfo, updatedProjectInfo)) {
+        console.log('Changes to dependencies. Running install and updating docker image')
+        runNpmInstall(allFiles);
+        docker(updatedProjectInfo);
+    } else {
+        // TODO if no change - no npm install  or docker - just s3 upload
+    }
 
-    // if(projectInfo.firstRun) {
-    //     const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
-    //     updatedProjectInfo.sfArn = stepFunctionArn;
-    //     updatedProjectInfo.firstRun = false;
-    // }
+    if(projectInfo.firstRun || haveDependenciesChanged(projectInfo, updatedProjectInfo)) {
+        // TODO is this enough to get the most recent docker image in step function?
+        const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
+        updatedProjectInfo.sfArn = stepFunctionArn;
+        updatedProjectInfo.firstRun = false;
+    }
 
-    // and now the actual call...
-    updatedProjectInfo.sfArn = 'arn:aws:states:eu-west-1:262438358359:stateMachine:StepFunction-9tHEyuA5aZ8O';
-    await startExecution(updatedProjectInfo);
+    // updatedProjectInfo.sfArn = 'arn:aws:states:eu-west-1:262438358359:stateMachine:StepFunction-9tHEyuA5aZ8O';
+    // await startExecution(updatedProjectInfo);
 
     return updatedProjectInfo;
 }
 
-// TODO remove
-const exampleProjectInfo = {
-    name: 'bff',
-    region: 'eu-west-1',
-    path: "/Users/vanovsa/Documents/vrt-oidc-client-bff",
-    firstRun: true,
-    allDependencies: [
-        {
-            name: 'autologin',
-            dependencies: { 'fp-ts': '^2.8.3' },
-            devDependencies: {}
-        }
-    ],
-};
-
-script(exampleProjectInfo)
-    .then(res => {
-        console.log(res)
-    });
-
 module.exports = {
     script,
 };
+
+// TODO remove
+// const exampleProjectInfo = {
+//     name: 'bff',
+//     region: 'eu-west-1',
+//     path: "/Users/vanovsa/Documents/vrt-oidc-client-bff",
+//     firstRun: true,
+//     allDependencies: [
+//         {
+//             name: 'autologin',
+//             dependencies: { 'fp-ts': '^2.8.3' },
+//             devDependencies: {}
+//         }
+//     ],
+// };
+
+// script(exampleProjectInfo)
+//     .then(res => {
+//         console.log(res)
+//     });

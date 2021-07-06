@@ -82,9 +82,8 @@ const findSfOutputs = async (stackName) => {
 const deployBaseInfra = async (projectInfo) => {
     AWS.config.update({region: projectInfo.region});
 
-    console.log('Deploying basic infrastructure');
     const baseInfra = await readFile('../infrastructure/repo_and_bucket.yaml');
-    const baseStackName = 'lambda-tester-base-infrastructure';
+    const baseStackName = `${projectInfo.name}-l-tester-base-infra`;
 
     const baseParams = {
         StackName: baseStackName,
@@ -107,9 +106,8 @@ const deployBaseInfra = async (projectInfo) => {
 const deploySfInfra = async (projectInfo) => {
     AWS.config.update({region: projectInfo.region});
 
-    console.log('Deploying lambda testers');
     const sfInfra = await readFile('../infrastructure/step_function.yaml');
-    const sfStackName = 'lambda-tester-sf'
+    const sfStackName = `${projectInfo.name}-l-tester-sf`;
     const sfParams = {
         StackName: sfStackName,
         Capabilities: [

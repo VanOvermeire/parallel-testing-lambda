@@ -3,9 +3,11 @@ const { resolve, relative } = require('path');
 const copydir = require('copy-dir');
 const {execSync} = require('child_process');
 
-const replaceDir = (currentDir, newDir) => (file) => file.replace(currentDir, newDir);
+const ALWAYS_TO_IGNORE = ['.git', 'node_modules'];
 
-// not taking into account stuff like *.iml
+const isPackageJson = (file) => file.endsWith('package.json');
+
+// TODO not taking into account stuff like *.iml
 const getGitIgnoreList = async (projectPath) => {
     const res = await readFile(`${projectPath}/.gitignore`);
     return res.toString().split('\n')
@@ -17,18 +19,16 @@ const getGitIgnoreList = async (projectPath) => {
 const findPackageJsonDirs = (allFiles) => findPackageJsonFiles(allFiles).map(f => f.replace('package.json', ''));
 const findPackageJsonDirsInCopy = (allFiles) => findPackageJsonDirs(allFiles);
 
-const findPackageJsonFiles = (allFiles) => allFiles.filter(isPackageJson)
-const findPackageJsonFilesInCopy = (allFiles) => findPackageJsonFiles(allFiles)
-    // .map(replaceDir(directory, ourDirectory));
-
-const isPackageJson = (file) => file.endsWith('package.json');
+const findPackageJsonFiles = (allFiles) => allFiles.filter(isPackageJson);
+const findPackageJsonFilesInCopy = (allFiles) => findPackageJsonFiles(allFiles);
 
 async function getFiles(dir, toIgnore) {
     const entries = await readdir(dir, {withFileTypes: true});
     const files = await Promise.all(entries.map((entry) => {
             const res = resolve(dir, entry.name);
+            const allToIgnore = ALWAYS_TO_IGNORE.concat(toIgnore);
 
-            if (entry.name.endsWith('.git') || entry.name.endsWith('node_modules') || toIgnore.some(i => entry.name.endsWith(i))) {
+            if (allToIgnore.some(i => entry.name.endsWith(i))) {
                 return null;
             } else if (entry.isFile()) {
                 return res;
@@ -42,14 +42,10 @@ async function getFiles(dir, toIgnore) {
 }
 
 const copy = (fromDirectory, toDirectory, toIgnore) => {
+    console.log('Copying application to our local directory');
     copydir.sync(fromDirectory, toDirectory, {
-        filter: (stat, filepath, filename) => !(filename === '.git' || filename === 'node_modules' || toIgnore.some(i => i === filename))
+        filter: (stat, filepath, filename) => !ALWAYS_TO_IGNORE.concat(toIgnore).some(i => i === filename)
     });
-};
-
-// TODO specific for bff - in general should just point to wherever jest etc was installed
-const modifyPackageJsonString = (modify, fileContentAsString) => {
-    return fileContentAsString.replace(modify, `../../node_modules/${modify}/bin/${modify}.js`);
 };
 
 const doesNotHaveModifiedAsDependency = (modify, fileContentAsString) => {
@@ -70,7 +66,7 @@ const modifyPackageJsons = async (applicationDir, allFiles) => {
 
         for(const modify of toModify) {
             if(doesNotHaveModifiedAsDependency(modify, fileContentAsString)) {
-                console.log(`${modify} is set globally and that will not work in lambda - pointing to actual location`); // OR install globally
+                console.log(`${modify} is set globally in ${filename}. That will not work in lambda, so pointing to actual location`); // OR install globally
                 const refTo = `${applicationDir}/node_modules/${modify}/bin/${modify}.js`;
                 const pathToDir = filename.replace('/package.json', '');
                 const relativePath = relative(pathToDir, refTo);
