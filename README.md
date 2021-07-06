@@ -8,7 +8,9 @@
 
 ...
 
-Note that the total size of your project *after npm install* should be below 500 MB.
+Note:
+- the total size of your project *after npm install* should be below 500 MB. 
+- *Individual test commands* will timeout after 5 minutes.
 
 ## Requirements
 

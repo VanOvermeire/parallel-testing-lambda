@@ -7,6 +7,11 @@ const addProject = (currentConfig, answers) => {
     const path = answers.projectPath;
     const commands = answers.commands.split(',');
 
+    if(commands.includes('install')) {
+        console.warn('Cannot run npm install within lambda! Exiting without finishing config');
+        process.exit(1);
+    }
+
     const projectName = path.substr(path.lastIndexOf('/') + 1, path.length)
     projects[projectName] = {
         name: projectName,

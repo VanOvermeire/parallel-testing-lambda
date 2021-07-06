@@ -41,7 +41,8 @@ Resources:
     Properties:
       PackageType: Image
       ImageUri: !Ref ImageUri
-      Timeout: 120
+      Timeout: 300
+      MemorySize: 4096
 #      Environment:
 #        Variables:
 #          BUCKET: !Ref S3Bucket

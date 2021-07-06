@@ -1,17 +1,21 @@
 const { readFile } = require('fs/promises');
 const AWS = require('aws-sdk');
-const {CONTAINER_NAME, DEFAULT_REGION} = require("./constants");
+const {DEFAULT_REGION} = require("./constants");
 
 const cloudformation = new AWS.CloudFormation({ region: DEFAULT_REGION });
 
 const waitForStack = async (stackName, resolve) => {
-    const okStatus = ["CREATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_COMPLETE"]
+    const okStatus = ["CREATE_COMPLETE", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_COMPLETE"];
+    const failStatus = ["CREATE_FAILED", "ROLLBACK_FAILED", "DELETE_FAILED", "UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE"];
+
     const stackDetails = await cloudformation.describeStacks({
         StackName: stackName
     }).promise();
     const status = stackDetails.Stacks[0].StackStatus;
 
-    if (!okStatus.includes(stackDetails.Stacks[0].StackStatus)) {
+    if(failStatus.includes(status)) {
+        throw new Error(`Stack failed with ${status}!`);
+    } else if (!okStatus.includes(status)) {
         setTimeout(async () => {
             await waitForStack(stackName, resolve);
         }, 5000)

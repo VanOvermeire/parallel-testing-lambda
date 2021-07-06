@@ -1,23 +1,26 @@
 const {execSync} = require('child_process')
 
 exports.handler = async (event) => {
+    console.log(event);
     const { command, location } = event;
 
     try {
-        execSync('cp -r application/ /tmp'); // can only execute in tmp folder...
+        console.log('Copying application to tmp folder (so we can execute)')
+        execSync('cp -r application/ /tmp');
 
         const npmCommand = `npm run ${command}`;
         const dirInTemp = `/tmp/application/${location}`;
+        console.log(`Running ${npmCommand} in ${dirInTemp}`);
         const result = execSync(npmCommand, {cwd: dirInTemp});
 
         return {
-            statusCode: 200,
-            body: JSON.stringify({output: result.toString(), command, location }),
+            succeeded: true,
+            result: JSON.stringify({output: result.toString(), command, location }),
         };
     } catch (err) {
         return {
-            statusCode: 500,
-            body: JSON.stringify({error: err, command, location }),
+            succeeded: false,
+            result: JSON.stringify({error: err, command, location }),
         };
     }
 };

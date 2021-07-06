@@ -1,3 +1,4 @@
+const {startExecution} = require("./helpers/execution");
 const {copy} = require("./helpers/fileHandlers");
 const {execSync} = require('child_process');
 
@@ -51,12 +52,12 @@ const haveDependenciesChanged = (oldInfo, newInfo) => {
 const script = async (projectInfo) => {
     const updatedProjectInfo = {...projectInfo};
 
-    if(projectInfo.firstRun) {
-        const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
-        updatedProjectInfo.bucketName = bucketName;
-        updatedProjectInfo.repoName = repoName;
-        updatedProjectInfo.repoUri = repoUri;
-    }
+    // if(projectInfo.firstRun) {
+    //     const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
+    //     updatedProjectInfo.bucketName = bucketName;
+    //     updatedProjectInfo.repoName = repoName;
+    //     updatedProjectInfo.repoUri = repoUri;
+    // }
 
     // const toIgnore = await getGitIgnoreList(projectInfo.path);
     // copy(projectInfo.path, destinationDir, toIgnore);
@@ -73,11 +74,15 @@ const script = async (projectInfo) => {
     //     // TODO if no change - no npm install  or docker - just s3 upload
     // }
 
-    if(projectInfo.firstRun) {
-        const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
-        updatedProjectInfo.sfArn = stepFunctionArn;
-        updatedProjectInfo.firstRun = false;
-    }
+    // if(projectInfo.firstRun) {
+    //     const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
+    //     updatedProjectInfo.sfArn = stepFunctionArn;
+    //     updatedProjectInfo.firstRun = false;
+    // }
+
+    // and now the actual call...
+    updatedProjectInfo.sfArn = 'arn:aws:states:eu-west-1:262438358359:stateMachine:StepFunction-9tHEyuA5aZ8O';
+    await startExecution(updatedProjectInfo);
 
     return updatedProjectInfo;
 }

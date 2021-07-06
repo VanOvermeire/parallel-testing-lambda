@@ -14,7 +14,7 @@ const setupQuestions = [
     {
         type: 'input',
         name: 'commands',
-        message: 'What npm commands do you want to run?',
+        message: 'What npm commands (separated by a comma) do you want to run?',
         default: 'test',
     },
 ];
