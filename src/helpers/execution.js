@@ -11,14 +11,12 @@ const waitForExecution = async (executionArn, resolve) => {
         executionArn,
     }).promise();
 
-    if (failStatus.includes(result.status)) {
-        return resolve({sfSuccess: false, result});
-    } else if (running === result.status) {
+    if (running === result.status) {
         setTimeout(async () => {
             await waitForExecution(executionArn, resolve);
         }, 5000)
     } else {
-        return resolve({sfSuccess: true, result});
+        return resolve(result);
     }
 };
 
@@ -44,15 +42,25 @@ const buildInput = (projectInfo) => {
 
 const startExecution = async (projectInfo) => {
     AWS.config.update({region: projectInfo.region});
-    console.log('Running tests');
+    console.log(`Running tests in ${projectInfo.sfArn}`);
 
     const result = await stepfunctions.startExecution({
         stateMachineArn: projectInfo.sfArn,
         input: buildInput(projectInfo),
     }).promise();
 
-    const res = await waitForExecutionToFinish(result.executionArn);
-    console.log(res);
+    const results = await waitForExecutionToFinish(result.executionArn);
+    const success = results.status === 'SUCCEEDED' && JSON.parse(results.output).every(r => r.succeeded === true);
+    console.log(success);
+
+    if(success) {
+        console.log('All tests ran successfully!');
+    } else {
+        const failedTests = JSON.parse(results.output.filter(r => r.succeeded === false));
+        console.log('Some tests failed. Some details are printed below. For more info, check your step function or cloudwatch logs');
+        console.log(failedTests);
+        process.exit(1);
+    }
 };
 
 module.exports = {

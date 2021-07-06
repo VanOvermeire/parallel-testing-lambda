@@ -7,11 +7,13 @@ const {deployBaseInfra, deploySfInfra} = require("./helpers/deployer");
 
 process.env.PATH = process.env.PATH + ':/usr/local/bin'; // needed for execSync
 
+// TODO name of file?
+
 const currentDir = __dirname;
 const destinationDir = `${currentDir}/application`;
 
 const docker = (projectInfo) => {
-    console.log(`Running docker build, tag, push with ${projectInfo.repoUri} and name ${projectInfo.repoName}. This might take a while`);
+    console.log(`Building and pushing custom lambda image with repo uri ${projectInfo.repoUri} and name ${projectInfo.repoName}. Be patient, this might take a while!`);
     const res = execSync(`./docker_run.sh ${projectInfo.repoUri} ${projectInfo.repoName} ${projectInfo.region}`);
     console.log(res.toString()); // TODO remove?
 };
@@ -52,7 +54,6 @@ const script = async (projectInfo) => {
     const updatedProjectInfo = {...projectInfo};
 
     if(projectInfo.firstRun) {
-        console.log('First run. Need to create basic infrastructure.');
         const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
         updatedProjectInfo.bucketName = bucketName;
         updatedProjectInfo.repoName = repoName;
@@ -79,9 +80,7 @@ const script = async (projectInfo) => {
         updatedProjectInfo.sfArn = stepFunctionArn;
         updatedProjectInfo.firstRun = false;
     }
-
-    // updatedProjectInfo.sfArn = 'arn:aws:states:eu-west-1:262438358359:stateMachine:StepFunction-9tHEyuA5aZ8O';
-    // await startExecution(updatedProjectInfo);
+    await startExecution(updatedProjectInfo);
 
     return updatedProjectInfo;
 }
@@ -89,23 +88,3 @@ const script = async (projectInfo) => {
 module.exports = {
     script,
 };
-
-// TODO remove
-// const exampleProjectInfo = {
-//     name: 'bff',
-//     region: 'eu-west-1',
-//     path: "/Users/vanovsa/Documents/vrt-oidc-client-bff",
-//     firstRun: true,
-//     allDependencies: [
-//         {
-//             name: 'autologin',
-//             dependencies: { 'fp-ts': '^2.8.3' },
-//             devDependencies: {}
-//         }
-//     ],
-// };
-
-// script(exampleProjectInfo)
-//     .then(res => {
-//         console.log(res)
-//     });

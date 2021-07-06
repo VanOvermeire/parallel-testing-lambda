@@ -26,14 +26,8 @@ Resources:
                 TestLambda:
                   Type: Task
                   Resource: !GetAtt GenericTest.Arn
-                  OutputPath: "$.Payload"
                   End: true
-#            Next: CheckResults
             End: true
-#          CheckResults:
-#            Type: Task
-#            Resource: !GetAtt Checker.Arn
-#            End: true
       Role: !GetAtt StateExecutionIAMRole.Arn
 
   GenericTest:
@@ -56,22 +50,6 @@ Resources:
                 - "s3:List*"
               Resource:
                 - "*"
-
-#  Checker:
-#    Type: AWS::Serverless::Function
-#    Properties:
-#      Handler: index.handler
-#      MemorySize: 4096
-#      Runtime: nodejs12.x
-#      Timeout: 120
-#      CodeUri:
-#        Bucket: !Ref S3Bucket
-#        Key: !Sub "${S3Path}/e2e.zip"
-#      Environment:
-#        Variables:
-#          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
-#      Policies:
-#        - AWSLambdaExecute
 
   StateExecutionIAMRole:
     Type: AWS::IAM::Role

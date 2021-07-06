@@ -82,6 +82,7 @@ const findSfOutputs = async (stackName) => {
 const deployBaseInfra = async (projectInfo) => {
     AWS.config.update({region: projectInfo.region});
 
+    console.log('Creating basic infrastructure');
     const baseInfra = await readFile('../infrastructure/repo_and_bucket.yaml');
     const baseStackName = `${projectInfo.name}-l-tester-base-infra`;
 
@@ -106,6 +107,7 @@ const deployBaseInfra = async (projectInfo) => {
 const deploySfInfra = async (projectInfo) => {
     AWS.config.update({region: projectInfo.region});
 
+    console.log('Creating step function that will run the tests');
     const sfInfra = await readFile('../infrastructure/step_function.yaml');
     const sfStackName = `${projectInfo.name}-l-tester-sf`;
     const sfParams = {

@@ -1,4 +1,7 @@
 .idea
 *.iml
 node_modules
+
+src/config
 src/application
+src/image/application
