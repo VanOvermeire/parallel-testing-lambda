@@ -77,7 +77,11 @@ const runWithNewContainer = async (projectInfo, allFiles) => {
     }
 }
 
+// TODO hide config files with . ?
 const runTasks = async (projectInfo) => {
+    // TODO before anything else, start watching file changes and saving this - maybe in separate file ({name}-changes.json)
+    //  then offer to run tests and keep watching
+
     const allFiles = await prepareCopy(projectInfo.path);
 
     const newDependencies = await gatherAllDependencies(allFiles);

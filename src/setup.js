@@ -33,7 +33,7 @@ const handleSetup = async () => {
     await writeConfig({
         projects
     });
-    console.log('Done with config and setup. You can now run tests.');
+    console.log('Done with config and setup. Now start run to track file changes and run tests.');
 };
 
 handleSetup()
