@@ -35,7 +35,7 @@ Some additional notes:
 Example: a project of about 10 MB in size (with node modules 150 MB) with 20 subprojects, which you run 20 times a day, for 20 days a month, in Ireland.  
 Also assuming you aren't running anything else in your account and so can benefit from Free Tier.
 
-## Time example
+### Time example
 
 Takes a bit more than 3 minutes to run locally.
 
@@ -48,14 +48,24 @@ So a nice speedup when only files changed since your last run. But slower for a 
 The other advantage of running the tests on Lambda is your computer will not slow down. But again this is only an advantage
 when you do not add new dependencies, since the docker build happens locally and will take quite a bit of CPU.
 
-## Price estimate
+With provisioned capacity enabled (not yet included in this project) the speed with new files should be around 15 seconds, with a new image about 3 minutes 15 seconds.
 
-- Lambda: 0 dollars
+### Price estimate
+
+- Lambda: +- 9 dollars
 - Step Functions: +- 0.1 dollars
 - S3: +- 0.1 dollars 
 - ECR: +- 0.3 dollars? (depends a lot on how many times your dependencies - and thus your image - change)
+- Total: less than 10 dollars per month
 
-So less than a dollar per month.
+So expect some costs if you use this intensively, but nothing massive.
+
+With provisioned capacity enabled (not yet included in this project) there is an additional cost of about 15 dollars if you keep the capacity during the entire month.
+
+### Compared to CodeBuild or ECS
+
+I also did some experiments with both CodeBuild en ECS Tasks. These are more flexible, but startup times are an issue 
+and costs are - at a glance in any case - higher.
 
 ## Requirements
 
@@ -63,3 +73,7 @@ So less than a dollar per month.
 - configured AWS CLI
 - npm & node (developed with v14.0.0)
 - docker
+
+## TODO
+
+- optimization: offer alternative for projects <75 MB (including node modules) - and use s3 sync instead of building docker images (a bit faster, less CPU usage and cheaper)

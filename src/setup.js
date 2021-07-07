@@ -24,10 +24,9 @@ const addProject = (currentConfig, answers) => {
 }
 
 const handleSetup = async () => {
-    let questions = setupQuestions;
     let currentConfig = await getCurrentConfig();
 
-    const answers = await inquirer.prompt(questions);
+    const answers = await inquirer.prompt(setupQuestions);
 
     // const region = answers.region || currentConfig.region;
     const projects = addProject(currentConfig, answers);
