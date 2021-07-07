@@ -1,5 +1,5 @@
 const {program} = require('commander');
-const {script} = require("./scriptRunner");
+const {script} = require("./tasks");
 const {getCurrentConfig, writeConfig} = require("./helpers/config");
 
 function showListIfRequested(options, config) {

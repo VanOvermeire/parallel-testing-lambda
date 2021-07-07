@@ -79,12 +79,11 @@ const findSfOutputs = async (stackName) => {
     return { stepFunctionArn };
 }
 
-const deployBaseInfra = async (projectInfo) => {
-    AWS.config.update({region: projectInfo.region});
+const deployBaseInfra = async (name, region) => {
+    AWS.config.update({region});
 
-    console.log('Creating basic infrastructure');
     const baseInfra = await readFile('../infrastructure/repo_and_bucket.yaml');
-    const baseStackName = `${projectInfo.name}-l-tester-base-infra`;
+    const baseStackName = `${name}-l-tester-base-infra`;
 
     const baseParams = {
         StackName: baseStackName,
@@ -94,7 +93,7 @@ const deployBaseInfra = async (projectInfo) => {
         Parameters: [
             {
                 ParameterKey: 'ProjectName',
-                ParameterValue: projectInfo.name
+                ParameterValue: name,
             }
         ],
         TemplateBody: baseInfra.toString(),
@@ -104,12 +103,11 @@ const deployBaseInfra = async (projectInfo) => {
     return await findBaseOutputs(baseStackName);
 };
 
-const deploySfInfra = async (projectInfo) => {
-    AWS.config.update({region: projectInfo.region});
+const deploySfInfra = async (name, region, repoUri) => {
+    AWS.config.update({region});
 
-    console.log('Creating step function that will run the tests');
     const sfInfra = await readFile('../infrastructure/step_function.yaml');
-    const sfStackName = `${projectInfo.name}-l-tester-sf`;
+    const sfStackName = `${name}-l-tester-sf`;
     const sfParams = {
         StackName: sfStackName,
         Capabilities: [
@@ -119,7 +117,7 @@ const deploySfInfra = async (projectInfo) => {
         Parameters: [
             {
                 ParameterKey: 'ImageUri',
-                ParameterValue: `${projectInfo.repoUri}:latest`,
+                ParameterValue: `${repoUri}:latest`,
             }
         ],
         TemplateBody: sfInfra.toString(),

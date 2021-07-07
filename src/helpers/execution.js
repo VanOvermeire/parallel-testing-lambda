@@ -42,10 +42,10 @@ const buildInput = (projectInfo, dependenciesChanged) => {
 
 const startExecution = async (projectInfo, dependenciesChanged) => {
     AWS.config.update({region: projectInfo.region});
-    console.log(`Running tests in ${projectInfo.sfArn}`);
+    console.log(`Running tests in ${projectInfo.stepFunctionArn}`);
 
     const result = await stepfunctions.startExecution({
-        stateMachineArn: projectInfo.sfArn,
+        stateMachineArn: projectInfo.stepFunctionArn,
         input: buildInput(projectInfo, dependenciesChanged),
     }).promise();
 
