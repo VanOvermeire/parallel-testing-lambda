@@ -2,6 +2,9 @@ const depsEqual = (oldDeps, newDeps) => {
     const oldDepsAsArrays = Object.entries(oldDeps).map(entry => entry[0] + entry[1]).sort();
     const newDepsAsArrays = Object.entries(newDeps).map(entry => entry[0] + entry[1]).sort();
 
+    console.log(oldDepsAsArrays)
+    console.log(newDepsAsArrays)
+
     return oldDepsAsArrays.length === newDepsAsArrays.length &&
         oldDepsAsArrays.every((val, index) => val === newDepsAsArrays[index]);
 };
@@ -13,6 +16,7 @@ const haveDependenciesChanged = (oldInfo, newInfo) => {
     if(oldDependencies.length !== newDependencies.length) {
         return true;
     }
+
     const oldSubProjectNames = oldDependencies.map(d => d.name);
     const newSubProjectNames = newDependencies.map(d => d.name);
 
@@ -20,14 +24,12 @@ const haveDependenciesChanged = (oldInfo, newInfo) => {
         return true;
     }
 
-    oldDependencies.every(dep => {
+    return oldDependencies.some(dep => {
         const correctNewDependencies = newDependencies.filter(d => d.name === dep.name).shift() || {};
 
         return !depsEqual(dep.dependencies, correctNewDependencies.dependencies)
             || !depsEqual(dep.devDependencies, correctNewDependencies.devDependencies)
     });
-
-    return false;
 };
 
 module.exports = {

@@ -76,4 +76,4 @@ and costs are - at a glance in any case - higher.
 
 ## TODO
 
-- optimization: offer alternative for projects <75 MB (including node modules) - and use s3 sync instead of building docker images (a bit faster, less CPU usage and cheaper)
+- downloading new files becomes inefficient after a while and will break down at some point -> at some point force a new container build and clear out bucket and file list in config

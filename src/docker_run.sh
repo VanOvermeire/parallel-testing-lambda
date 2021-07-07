@@ -8,7 +8,7 @@ repo_uri=$1
 repo_name=$2
 region=$3
 
-mv application image
+cp -r application image/application
 
 cd image
 aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${repo_uri}"

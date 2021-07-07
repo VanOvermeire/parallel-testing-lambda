@@ -61,7 +61,6 @@ const downloadFiles = async () => {
     await Promise.all(allParams.map(downloadFile));
 }
 
-
 const handler = async (event) => {
     console.log('do it')
     await downloadFiles();

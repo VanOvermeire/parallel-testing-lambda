@@ -3,7 +3,7 @@ const { resolve, relative } = require('path');
 const copydir = require('copy-dir');
 const {execSync} = require('child_process');
 
-const ALWAYS_TO_IGNORE = ['.git', 'node_modules'];
+const ALWAYS_TO_IGNORE = ['.git', 'node_modules', 'coverage'];
 
 const isPackageJson = (file) => file.endsWith('package.json');
 
