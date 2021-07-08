@@ -3,10 +3,13 @@ const {setupTasks} = require("./tasks");
 const {writeConfig, getCurrentConfig} = require("./helpers/config");
 const {setupQuestions} = require("./helpers/questions");
 
+// TODO allow user to update the docker container -> 'add or update' ? -> next
 const addProject = async (currentConfig, answers) => {
     const projects = currentConfig.projects || {};
     const path = answers.projectPath;
     const commands = answers.commands.split(',');
+    const region = answers.region;
+    const imageVersion = 1;
 
     if (commands.includes('install')) {
         console.warn('Cannot run npm install within lambda! Exiting.');
@@ -20,7 +23,7 @@ const addProject = async (currentConfig, answers) => {
         process.exit(1);
     }
 
-    projects[name] = await setupTasks({name, path, commands, region: answers.region});
+    projects[name] = await setupTasks({name, path, commands, region, imageVersion});
 
     return projects;
 }

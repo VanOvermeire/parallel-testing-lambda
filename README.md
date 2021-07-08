@@ -4,29 +4,47 @@
 
 ...
 
+### Why note use CodeBuild or ECS?
+
+I also did some experiments with both CodeBuild en ECS Tasks. On the plus, those solutions are more flexible, 
+and require less set up. On the other hand, startup times are an issue (it can take a while before your task is even ready to start your tests) 
+and at a glance the costs seem higher as well.
+
 ## Usage
 
-First run the setup which will help you build a `config.json` file for your project(s):
+First run the setup which will create the basic infrastructure and configuration for your project:
 
 ```
 node config.js
 ```
 
-Once that is done, you can run the `run.js` command with `-p` or `--project`. Use `--help` to explore additional arguments.
+This can take several minutes depending on the size of your project.
+
+Once that is done, you can run the `run.js` command which will watch for file changes and allow you to run tests.
 
 ```
-run.js -p my-example-project
+run.js
 ```
 
-On a first run, this will set up your infrastructure and build a docker image for running the tests. 
-Afterwards, if there are no changes to dependencies, these steps will be skipped (and everything will be much quicker).
+Important note! This should run whenever you are working on the project since it will keep an eye on change and send them to AWS. 
+This is a speed optimization. You can use the config to update your project if you did not / do not want to do this.
 
-Recommendation: use for 'mature' projects with multiple subprojects where dependencies do not change as often.
-See also the 'Time example' below.
+## Requirements
 
-Some additional notes:
-- the total size of your project *after npm install* should be below 500 MB. 
-- *Individual test commands* will timeout after 5 minutes.
+- an AWS account
+- configured AWS CLI
+- npm & node (developed with v14.0.0)
+- docker
+
+## Use case
+
+Mature projects with multiple subprojects where dependencies do not change as often and unit tests run slow, either
+because there are a lot of them, or it is taking a while to handle Typescript transforms.
+
+## Limitations
+
+- the total size of your project *after npm install* should be below 500 MB
+- *Individual test commands* will timeout after 5 minutes. So if you have a single package with hundreds of Typescript unit tests, that might be a problem
 
 ## Example estimates
 
@@ -61,19 +79,3 @@ With provisioned capacity enabled (not yet included in this project) the speed w
 So expect some costs if you use this intensively, but nothing massive.
 
 With provisioned capacity enabled (not yet included in this project) there is an additional cost of about 15 dollars if you keep the capacity during the entire month.
-
-### Compared to CodeBuild or ECS
-
-I also did some experiments with both CodeBuild en ECS Tasks. These are more flexible, but startup times are an issue 
-and costs are - at a glance in any case - higher.
-
-## Requirements
-
-- an AWS account
-- configured AWS CLI
-- npm & node (developed with v14.0.0)
-- docker
-
-## TODO
-
-- downloading new files becomes inefficient after a while and will break down at some point -> at some point force a new container build and clear out bucket and file list in config

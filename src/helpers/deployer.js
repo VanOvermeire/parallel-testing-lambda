@@ -103,7 +103,7 @@ const deployBaseInfra = async (name, region) => {
     return await findBaseOutputs(baseStackName);
 };
 
-const deploySfInfra = async (name, region, repoUri) => {
+const deploySfInfra = async (name, region, repoUri, bucketName, imageVersion) => {
     AWS.config.update({region});
 
     const sfInfra = await readFile('../infrastructure/step_function.yaml');
@@ -116,8 +116,16 @@ const deploySfInfra = async (name, region, repoUri) => {
         ],
         Parameters: [
             {
+                ParameterKey: 'S3Bucket',
+                ParameterValue: bucketName,
+            },
+            {
                 ParameterKey: 'ImageUri',
-                ParameterValue: `${repoUri}:latest`,
+                ParameterValue: repoUri,
+            },
+            {
+                ParameterKey: 'ImageVersion',
+                ParameterValue: imageVersion,
             }
         ],
         TemplateBody: sfInfra.toString(),

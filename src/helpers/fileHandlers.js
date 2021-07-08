@@ -81,7 +81,7 @@ const modifyPackageJsons = async (applicationDir, allFiles) => {
 const runNpmInstall = (allFiles) => {
     findPackageJsonDirsInCopy(allFiles).forEach(dir => {
         console.log(`running npm install for ${dir}`);
-        execSync('npm i', {cwd: dir}); // maybe with Promises -> parallel?
+        execSync('npm i', {cwd: dir, stdio: 'pipe'}); // maybe with Promises -> parallel?
     });
 };
 

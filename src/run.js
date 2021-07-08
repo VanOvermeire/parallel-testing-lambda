@@ -1,23 +1,11 @@
-const {program} = require('commander');
+const inquirer = require('inquirer');
+const {commandsQuestion} = require("./helpers/questions");
+const {projectQuestion} = require("./helpers/questions");
 const {script} = require("./tasks");
 const {getCurrentConfig, writeConfig} = require("./helpers/config");
 
-function showListIfRequested(options, config) {
-    if (options.list) {
-        console.log(Object.keys(config.projects));
-        process.exit(0);
-    }
-}
-
-function exitIfNoProjectsFound(currentProjects, projectName) {
-    if (projectName.length === 0) {
-        console.warn(`Did not find a project with that name. List of projects: ${currentProjects}`);
-        process.exit(1);
-    }
-}
-
-function getCommands(options, config, projectName) {
-    const commands = typeof options.commands === 'string' ? options.commands.split(',') : config.projects[projectName].commands;
+function getCommands(command, project) {
+    const commands = typeof command === 'string' ? command.split(',') : project.commands;
 
     if (commands.includes('install')) {
         console.warn('Cannot run npm install within lambda! Exiting without finishing config');
@@ -33,31 +21,24 @@ const runProgram = async () => {
     if (!config || !config.projects) {
         console.warn('No config or projects found - please run setup.js first');
     } else {
-        program.version('0.0.1');
-        program
-            .option('-p, --project <projectName>', 'Name of the project you want to test')
-            .option('-c, --commands <commandName>', 'Test commands to run (like test). Will replace defaults.')
-            .option('-l, --list', 'List the available projects')
-        program.parse(process.argv);
+        const projects = config.projects;
+        const { chosenProject } = await inquirer.prompt(projectQuestion(projects));
+        const project = projects[chosenProject];
 
-        const options = program.opts();
+        const { command } = await inquirer.prompt(commandsQuestion(project));
+        const commands = getCommands(command, project);
 
-        showListIfRequested(options, config);
-
-        const currentProjects = Object.keys(config.projects);
-        const projectName = currentProjects.filter(p => p === options.project);
-
-        exitIfNoProjectsFound(currentProjects, projectName);
-
-        const commands = getCommands(options, config, projectName);
         const projectConfig = {
-            ...config.projects[projectName],
-            commands,
+            ...project.config,
+            commands: command,
         };
-        console.log(`Running for ${projectName} with commands ${commands}...`);
+
+        // TODO instead start listening - and only run when an additional command comes
+        //  and if there are too many temp files, force a new docker build (in background?)
+        console.log(`Running for ${project.name} with commands ${commands}...`);
         const updatedProjectConfig = await script(projectConfig);
         console.log('Updating configuration after run...');
-        config.projects[projectName] = updatedProjectConfig;
+        config.projects[project.name] = updatedProjectConfig;
         await writeConfig(config);
     }
 };

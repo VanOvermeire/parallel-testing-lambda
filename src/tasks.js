@@ -11,19 +11,19 @@ process.env.PATH = process.env.PATH + ':/usr/local/bin'; // TODO needed for exec
 const currentDir = __dirname;
 const destinationDir = `${currentDir}/application`; // TODO maybe specific - so we do not overwrite copies with one another
 
-const docker = ({ repoUri, repoName, region}) => {
-    console.log(`Building and pushing custom lambda image with repo uri ${repoUri} and name ${repoName}...`);
-    execSync(`./docker_run.sh ${repoUri} ${repoName} ${region}`);
+const docker = ({ repoUri, repoName, region, imageVersion}) => {
+    console.log(`Building custom lambda image and pushing to ${repoUri}...`);
+    execSync(
+        `./docker_run.sh ${repoUri} ${repoName} ${region} ${imageVersion}`,
+        // {stdio : 'pipe' } // TODO
+    );
 };
 
 const prepareCopy = async (path) => {
     const toIgnore = await getGitIgnoreList(path);
     copy(path, destinationDir, toIgnore);
-    const allFiles = await getFiles(destinationDir, toIgnore);
-    await modifyPackageJsons(destinationDir, allFiles);
-    runNpmInstall(allFiles);
 
-    return allFiles;
+    return await getFiles(destinationDir, toIgnore);
 }
 
 const buildCopy = async (allFiles) => {
@@ -41,9 +41,9 @@ const setupTasks = async (projectInfo) => {
         .then(buildCopy);
     const allDependencies = await gatherAllDependencies(allFiles);
 
-    docker({repoUri, repoName, region: projectInfo.region});
+    docker({repoUri, repoName, region: projectInfo.region, imageVersion: projectInfo.imageVersion});
 
-    const {stepFunctionArn} = await deploySfInfra(projectInfo.name, projectInfo.region, repoUri);
+    const {stepFunctionArn} = await deploySfInfra(projectInfo.name, projectInfo.region, repoUri, bucketName, projectInfo.imageVersion.toString());
 
     return {
         ...projectInfo,
@@ -52,6 +52,7 @@ const setupTasks = async (projectInfo) => {
         repoUri,
         allDependencies,
         stepFunctionArn,
+        imageVersion: projectInfo.imageVersion + 1,
     };
 };
 
@@ -59,12 +60,12 @@ const runWithoutNewContainer = async (projectInfo) => {
     // TODO check the config for the files that have changed and pass those on to the execution
 }
 
+// TODO changes for infra, image version, etc.
 const runWithNewContainer = async (projectInfo, allFiles) => {
     console.log('Changes to dependencies, need to update container');
     await buildCopy(allFiles);
     runNpmInstall(allFiles);
     docker(projectInfo);
-    // TODO is this enough to get the most recent docker image in step function?
 
     const {stepFunctionArn} = await deploySfInfra(projectInfo.name, projectInfo.region, projectInfo.repoUri);
 

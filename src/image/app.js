@@ -5,7 +5,6 @@ exports.handler = async (event) => {
     const { command, location, dependenciesChanged } = event;
 
     try {
-        // console.log('Copying application to tmp folder (so we can execute)');
         execSync('cp -r application/ /tmp');
 
         const npmCommand = `npm run ${command}`;
