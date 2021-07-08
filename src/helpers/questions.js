@@ -1,4 +1,31 @@
-// would be nicer if project path was more flexible
+const configQuestion = [
+    {
+        type: 'list',
+        name: 'createOrUpdate',
+        message: 'Do you want to create a new project or update an existing one?',
+        choices: [
+            'create',
+            'update',
+        ],
+        default: 0,
+    }
+];
+
+const updateQuestion = (projects) => {
+    const projectNames = Object.keys(projects);
+
+    return [
+        {
+            type: 'list',
+            name: 'chosenProject',
+            message: 'What project do you want to update the container for?',
+            choices: projectNames,
+            default: 0,
+        },
+    ]
+};
+
+// TODO make config path more flexible?
 const setupQuestions = [
     {
         type: 'input',
@@ -50,4 +77,6 @@ module.exports = {
     setupQuestions,
     projectQuestion,
     commandsQuestion,
+    configQuestion,
+    updateQuestion,
 };

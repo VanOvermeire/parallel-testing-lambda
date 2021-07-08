@@ -1,4 +1,6 @@
 const inquirer = require('inquirer');
+const {updateQuestion} = require("./helpers/questions");
+const {configQuestion} = require("./helpers/questions");
 const {setupTasks} = require("./tasks");
 const {writeConfig, getCurrentConfig} = require("./helpers/config");
 const {setupQuestions} = require("./helpers/questions");
@@ -26,16 +28,37 @@ const addProject = async (currentConfig, answers) => {
     projects[name] = await setupTasks({name, path, commands, region, imageVersion});
 
     return projects;
-}
+};
+
+const updateProject = async (currentConfig, projectName) => {
+    const projects = currentConfig.projects || {};
+    const projectInfo = projects[projectName];
+
+    projects[projectName] = await setupTasks(projectInfo); // optimisation would be to skip stuff that is not needed
+
+    return projects;
+};
 
 const handleSetup = async () => {
-    let currentConfig = await getCurrentConfig();
+    const currentConfig = await getCurrentConfig();
+    let projects;
 
-    const answers = await inquirer.prompt(setupQuestions);
-    const projects = await addProject(currentConfig, answers);
+    const { createOrUpdate } = await inquirer.prompt(configQuestion);
+
+    if(createOrUpdate === 'create') {
+        const answers = await inquirer.prompt(setupQuestions);
+        projects = await addProject(currentConfig, answers);
+
+    } else {
+        const { chosenProject } = await inquirer.prompt(updateQuestion(currentConfig.projects));
+        projects = await updateProject(currentConfig, chosenProject);
+    }
+
     await writeConfig({
         projects
     });
+
+
     console.log('Done with config and setup. Now start run to track file changes and run tests.');
 };
 
