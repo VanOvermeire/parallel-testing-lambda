@@ -33,13 +33,22 @@ const runProgram = async () => {
             commands: command,
         };
 
+        console.log(`Starting to watch project dir ${projectConfig.path}`);
+
         // TODO instead start listening - and only run when an additional command comes
         //  and if there are too many temp files, force a new docker build (in background?)
-        console.log(`Running for ${project.name} with commands ${commands}...`);
-        const updatedProjectConfig = await script(projectConfig);
-        console.log('Updating configuration after run...');
-        config.projects[project.name] = updatedProjectConfig;
-        await writeConfig(config);
+
+        // TODO
+        //  if a normal file changed, upload it to s3 and save the change somewhere? then download in container upon invocation
+        //  if package json AND dep change, new docker is needed
+
+        // TODO also store whether s3 upload has already occurred for files
+
+        // console.log(`Running for ${project.name} with commands ${commands}...`);
+        // const updatedProjectConfig = await script(projectConfig);
+        // console.log('Updating configuration after run...');
+        // config.projects[project.name] = updatedProjectConfig;
+        // await writeConfig(config);
     }
 };
 
