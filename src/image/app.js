@@ -5,6 +5,9 @@ const AWS = require("aws-sdk");
 
 const s3 = new AWS.S3();
 
+const TMP_DIR = '/tmp';
+const APP_DIR_IN_TMP = `${TMP_DIR}/application`;
+
 async function isExists(path) {
     try {
         await fs.access(path);
@@ -32,40 +35,32 @@ async function writeFile(filePath, data) {
 const downloadFile = async (params) => {
     const data = await s3.getObject(params).promise();
     // console.log(__dirname + params.Key);
-    await writeFile('/tmp' + params.Key, data.toString());
+    await writeFile(`${APP_DIR_IN_TMP}/${params.Key}`, data.toString());
 };
 
 const downloadFiles = async (bucket, keys) => {
-    // TODO pass in the paths to download
-    const allParams = [
-        {
-            Bucket: "vrt-oidc-client-bff-l-tester-base-resourcesbucket-3jyvcokak06a",
-            Key: "lambdas/autologin/src/index.ts",
-        },
-        {
-            Bucket: "vrt-oidc-client-bff-l-tester-base-resourcesbucket-3jyvcokak06a",
-            Key: "lambdas/autologin/src/modules/autoLoginLogic.ts",
-        },
-    ];
-    await Promise.all(allParams.map(downloadFile));
-}
+    await Promise.all(keys
+        .map(key => ({Bucket: bucket, Key: key}))
+        .map(downloadFile));
+};
 
 exports.handler = async (event) => {
     console.log(event);
     const { command, location, changes } = event;
 
-    // TODO if list of file - download them to tmp
-    if(changes) {
-        // downloadFiles(process.env.BUCKET, changes);
-    }
-
     try {
         execSync('cp -r application/ /tmp');
 
+        if(changes) {
+            await downloadFiles(process.env.BUCKET, changes);
+        }
+
         const npmCommand = `npm run ${command}`;
-        const dirInTemp = `/tmp/application/${location}`;
+        const dirInTemp = `${APP_DIR_IN_TMP}/${location}`;
+
         console.log(`Running ${npmCommand} in ${dirInTemp}`);
         const result = execSync(npmCommand, {cwd: dirInTemp});
+
         console.log(result); // maybe remove?
 
         return {

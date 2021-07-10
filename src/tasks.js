@@ -1,3 +1,4 @@
+const {uploadChangesToS3} = require("./helpers/s3");
 const {resetCurrentChanges} = require("./helpers/config");
 const {execSync} = require('child_process');
 
@@ -58,8 +59,8 @@ const setupTasks = async (projectInfo) => {
 };
 
 const runWithoutNewContainer = async (projectInfo, changes) => {
-    // TODO upload changes!
-    await startExecution(projectInfo, changes);
+    const keys = await uploadChangesToS3(projectInfo, changes);
+    await startExecution(projectInfo, keys);
 }
 
 // TODO changes for infra, image version, etc.
