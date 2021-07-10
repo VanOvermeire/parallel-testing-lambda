@@ -25,28 +25,27 @@ const waitForExecutionToFinish = (executionArn) => {
     });
 };
 
-const buildInput = (projectInfo, dependenciesChanged) => {
-    // TODO get commands and locations from config and add to tasks
+const buildInput = (projectInfo, changes) => {
     const input = {
         name: projectInfo.name,
         tasks: [
             {
                 command: 'test',
                 location: 'lambdas/autologin',
-                dependenciesChanged,
+                changes,
             }
         ]
     }
     return JSON.stringify(input);
 };
 
-const startExecution = async (projectInfo, dependenciesChanged) => {
+const startExecution = async (projectInfo, changes) => {
     AWS.config.update({region: projectInfo.region});
     console.log(`Running tests in ${projectInfo.stepFunctionArn}`);
 
     const result = await stepfunctions.startExecution({
         stateMachineArn: projectInfo.stepFunctionArn,
-        input: buildInput(projectInfo, dependenciesChanged),
+        input: buildInput(projectInfo, changes),
     }).promise();
 
     const results = await waitForExecutionToFinish(result.executionArn);

@@ -1,24 +1,19 @@
-const {parentPort} = require("worker_threads");
+const {parentPort, workerData} = require("worker_threads");
 const chokidar = require('chokidar');
-const {writeChangesFile} = require("../helpers/config");
+const {addToChanges} = require("../helpers/config");
 
-// function uploadToS3(key) {
-//     // console.log('upload ' + key)
-//     return Promise.resolve({});
-// }
+const eventsToWatch = ['add', 'change'];
+const addToChangesForProject = addToChanges(workerData.name);
 
-async function addToConfig(key) {
-    // console.log('add ' + key)
-    return await writeChangesFile(key);
-}
-
-chokidar.watch('/Users/vanovsa/Documents/vrt-oidc-client-bff', {
+chokidar.watch(workerData.path, {
     persistent: true,
     ignoreInitial: true,
-    ignored: ['**/.git', '**/node_modules', '**/.idea', '**/coverage'],
+    ignored: ['**/.git/**', '**/node_modules/**', '**/.idea/**', '**/coverage/**'],
 }).on('all', (event, path) => {
-    // console.log(event, path); // add versus change // change /Users/vanovsa/Documents/vrt-oidc-client-bff/lambdas/autologin/src/index.ts
-    addToConfig(path).then(() => {
-        parentPort.postMessage(path);
-    });
+    // console.log(event, path);
+    if(eventsToWatch.includes(event)) {
+        addToChangesForProject(path).then(() => {
+            parentPort.postMessage(path);
+        });
+    }
 });

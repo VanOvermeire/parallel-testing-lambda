@@ -1,7 +1,9 @@
 const inquirer = require('inquirer');
-const {commandsQuestion} = require("./helpers/questions");
-const {projectQuestion} = require("./helpers/questions");
-const {script} = require("./tasks");
+const {updateConfig} = require("./helpers/config");
+const {Worker} = require("worker_threads");
+const {runTasks} = require("./tasks");
+const {getCurrentChanges} = require("./helpers/config");
+const {runTestQuestion, commandsQuestion, projectQuestion} = require("./helpers/questions");
 const {getCurrentConfig, writeConfig} = require("./helpers/config");
 
 function getCommands(command, project) {
@@ -14,6 +16,41 @@ function getCommands(command, project) {
 
     return commands;
 }
+
+function startWorker(projectConfig) {
+    console.log(`Watching project dir ${projectConfig.path}`);
+    const worker = new Worker("./filewatcher/watcherWorker.js", {
+        workerData: {
+            path: projectConfig.path,
+            name: projectConfig.name
+        }
+    });
+    worker.on("error", error => {
+        console.log(`Worker threw an error: ${error}`);
+    });
+    worker.on("exit", exitCode => {
+        console.log(`Watcher exited unexpectedly with code ${exitCode}`);
+    });
+}
+
+const runTestIfRequested = async (projectConfig) => {
+    const answer = await inquirer.prompt(runTestQuestion);
+
+    if(answer.run === 'true') {
+        const changes = await getCurrentChanges(projectConfig.name);
+
+        if(changes && Object.values(changes).some(v => !v.uploaded)) {
+            console.log(`Running for ${projectConfig.name} with commands ${projectConfig.commands}...`);
+            // const updatedProjectConfig = await runTasks(projectConfig, changes);
+            // await updateConfig(updatedProjectConfig);
+        } else {
+            console.log('Did not find any changes to project!');
+        }
+        await runTestIfRequested(projectConfig);
+    } else {
+        process.exit(0);
+    }
+};
 
 const runProgram = async () => {
     const config = await getCurrentConfig();
@@ -29,26 +66,11 @@ const runProgram = async () => {
         const commands = getCommands(command, project);
 
         const projectConfig = {
-            ...project.config,
-            commands: command,
+            ...project,
+            commands,
         };
-
-        console.log(`Starting to watch project dir ${projectConfig.path}`);
-
-        // TODO instead start listening - and only run when an additional command comes
-        //  and if there are too many temp files, force a new docker build (in background?)
-
-        // TODO
-        //  if a normal file changed, upload it to s3 and save the change somewhere? then download in container upon invocation
-        //  if package json AND dep change, new docker is needed
-
-        // TODO also store whether s3 upload has already occurred for files
-
-        // console.log(`Running for ${project.name} with commands ${commands}...`);
-        // const updatedProjectConfig = await script(projectConfig);
-        // console.log('Updating configuration after run...');
-        // config.projects[project.name] = updatedProjectConfig;
-        // await writeConfig(config);
+        startWorker(projectConfig);
+        await runTestIfRequested(projectConfig);
     }
 };
 

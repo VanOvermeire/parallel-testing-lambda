@@ -1,3 +1,4 @@
+const {resetCurrentChanges} = require("./helpers/config");
 const {execSync} = require('child_process');
 
 const {haveDependenciesChanged} = require("./helpers/dependencies");
@@ -56,8 +57,9 @@ const setupTasks = async (projectInfo) => {
     };
 };
 
-const runWithoutNewContainer = async (projectInfo) => {
-    // TODO check the config for the files that have changed and pass those on to the execution
+const runWithoutNewContainer = async (projectInfo, changes) => {
+    // TODO upload changes!
+    await startExecution(projectInfo, changes);
 }
 
 // TODO changes for infra, image version, etc.
@@ -78,25 +80,31 @@ const runWithNewContainer = async (projectInfo, allFiles) => {
     }
 }
 
-// TODO hide config files with . ?
-const runTasks = async (projectInfo) => {
-    // TODO before anything else, start watching file changes and saving this - maybe in separate file ({name}-changes.json)
-    //  then offer to run tests and keep watching
+// TODO
+//  if package json AND dep change, new docker is needed + update to config
+//  if there are too many temp files, force a new docker build in background?
+//  hide config files with . ?
+const runTasks = async (projectInfo, changes) => {
+    const changesToPackageJson = Object.keys(changes).some(k => k.endsWith('package.json'));
 
-    const allFiles = await prepareCopy(projectInfo.path);
+    if(changesToPackageJson) {
+        const allFiles = await prepareCopy(projectInfo.path);
+        const newDependencies = await gatherAllDependencies(allFiles);
 
-    const newDependencies = await gatherAllDependencies(allFiles);
+        if(haveDependenciesChanged(projectInfo.allDependencies, newDependencies)) {
+            await runWithNewContainer(projectInfo, allFiles);
+            await resetCurrentChanges();
 
-    if(haveDependenciesChanged(projectInfo.allDependencies, newDependencies)) {
-        await runWithNewContainer(projectInfo, allFiles);
-    } else {
-        await runWithoutNewContainer(projectInfo);
+            return {
+                ...projectInfo,
+                allDependencies: newDependencies,
+            }
+        }
     }
 
-    return {
-        ...projectInfo,
-        allDependencies: newDependencies,
-    };
+    await runWithoutNewContainer(projectInfo, changes);
+
+    return projectInfo;
 
     // const updatedProjectInfo = {...projectInfo};
     //
@@ -127,45 +135,43 @@ const runTasks = async (projectInfo) => {
     // return updatedProjectInfo;
 }
 
-// TODO remove
-const script = async (projectInfo) => {
-    const updatedProjectInfo = {...projectInfo};
-
-    if(projectInfo.firstRun) {
-        const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
-        updatedProjectInfo.bucketName = bucketName;
-        updatedProjectInfo.repoName = repoName;
-        updatedProjectInfo.repoUri = repoUri;
-    }
-
-    const toIgnore = await getGitIgnoreList(projectInfo.path);
-    copy(projectInfo.path, destinationDir, toIgnore);
-    const allFiles = await getFiles(destinationDir, toIgnore);
-    await modifyPackageJsons(destinationDir, allFiles);
-
-    updatedProjectInfo.allDependencies = await gatherAllDependencies(allFiles);
-    const dependenciesChanged = haveDependenciesChanged(projectInfo, updatedProjectInfo);
-
-    if(projectInfo.firstRun || dependenciesChanged) {
-        console.log('Changes to dependencies. Running install and updating docker image')
-        runNpmInstall(allFiles);
-        docker(updatedProjectInfo);
-    } else {
-        console.log('No changes to dependencies detected.');
-    }
-
-    if(projectInfo.firstRun || dependenciesChanged) {
-        const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
-        updatedProjectInfo.sfArn = stepFunctionArn;
-        updatedProjectInfo.firstRun = false;
-    }
-    await startExecution(updatedProjectInfo, dependenciesChanged);
-
-    return updatedProjectInfo;
-}
+// const script = async (projectInfo) => {
+//     const updatedProjectInfo = {...projectInfo};
+//
+//     if(projectInfo.firstRun) {
+//         const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
+//         updatedProjectInfo.bucketName = bucketName;
+//         updatedProjectInfo.repoName = repoName;
+//         updatedProjectInfo.repoUri = repoUri;
+//     }
+//
+//     const toIgnore = await getGitIgnoreList(projectInfo.path);
+//     copy(projectInfo.path, destinationDir, toIgnore);
+//     const allFiles = await getFiles(destinationDir, toIgnore);
+//     await modifyPackageJsons(destinationDir, allFiles);
+//
+//     updatedProjectInfo.allDependencies = await gatherAllDependencies(allFiles);
+//     const dependenciesChanged = haveDependenciesChanged(projectInfo, updatedProjectInfo);
+//
+//     if(projectInfo.firstRun || dependenciesChanged) {
+//         console.log('Changes to dependencies. Running install and updating docker image')
+//         runNpmInstall(allFiles);
+//         docker(updatedProjectInfo);
+//     } else {
+//         console.log('No changes to dependencies detected.');
+//     }
+//
+//     if(projectInfo.firstRun || dependenciesChanged) {
+//         const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
+//         updatedProjectInfo.sfArn = stepFunctionArn;
+//         updatedProjectInfo.firstRun = false;
+//     }
+//     await startExecution(updatedProjectInfo, dependenciesChanged);
+//
+//     return updatedProjectInfo;
+// }
 
 module.exports = {
-    script,
     runTasks,
     setupTasks,
 };

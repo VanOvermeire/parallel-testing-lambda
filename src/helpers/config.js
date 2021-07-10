@@ -2,7 +2,7 @@ const { readFile, writeFile } = require('fs/promises');
 
 const CONFIG_PATH = './config.json';
 
-const changesFilePath = (projectName) => `../${projectName}.json`;
+const changesFilePath = (projectName) => `./${projectName}.json`;
 
 const getCurrentConfig = async () => {
     try {
@@ -22,11 +22,21 @@ const getCurrentChanges = async (projectName) => {
     }
 };
 
+const resetCurrentChanges = async (projectName) => {
+    await writeFile(changesFilePath(projectName), '{}');
+};
+
 const writeConfig = async (config) => {
     await writeFile(CONFIG_PATH, JSON.stringify(config));
 }
 
-const writeChangesFile = (projectName) => async (change) => {
+const updateConfig = async (projectInfo) => {
+    const config = await getCurrentConfig();
+    config.projects[projectInfo.name] = projectInfo;
+    await writeConfig(config);
+}
+
+const addToChanges = (projectName) => async (change) => {
     const currentChanges = await getCurrentChanges(projectName);
     const wrappedChange =  { [change]: { uploaded: false }}
     const combined = {...currentChanges, ...wrappedChange};
@@ -36,6 +46,9 @@ const writeChangesFile = (projectName) => async (change) => {
 
 module.exports = {
     getCurrentConfig,
+    getCurrentChanges,
+    resetCurrentChanges,
     writeConfig,
-    writeChangesFile,
+    updateConfig,
+    addToChanges,
 };

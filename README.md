@@ -79,3 +79,8 @@ With provisioned capacity enabled (not yet included in this project) the speed w
 So expect some costs if you use this intensively, but nothing massive.
 
 With provisioned capacity enabled (not yet included in this project) there is an additional cost of about 15 dollars if you keep the capacity during the entire month.
+
+## TODO
+
+- does not take into account deletes or moves of files
+- will fail on a large amount of changes (because event payload will be too big)

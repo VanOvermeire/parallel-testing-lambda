@@ -25,7 +25,6 @@ const updateQuestion = (projects) => {
     ]
 };
 
-// TODO make config path more flexible?
 const setupQuestions = [
     {
         type: 'input',
@@ -71,7 +70,16 @@ const commandsQuestion = (project) => {
             default: commands,
         }
     ];
-}
+};
+
+const runTestQuestion = [
+    {
+        type: 'input',
+        name: 'run',
+        message: 'Run tests?',
+        default: 'true'
+    },
+]
 
 module.exports = {
     setupQuestions,
@@ -79,4 +87,5 @@ module.exports = {
     commandsQuestion,
     configQuestion,
     updateQuestion,
+    runTestQuestion,
 };

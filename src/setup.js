@@ -5,10 +5,9 @@ const {setupTasks} = require("./tasks");
 const {writeConfig, getCurrentConfig} = require("./helpers/config");
 const {setupQuestions} = require("./helpers/questions");
 
-// TODO allow user to update the docker container -> 'add or update' ? -> next
 const addProject = async (currentConfig, answers) => {
     const projects = currentConfig.projects || {};
-    const path = answers.projectPath;
+    const path = answers.projectPath.endsWith('/') ? answers.projectPath.substr(0, answers.projectPath.length - 1) : answers.projectPath;
     const commands = answers.commands.split(',');
     const region = answers.region;
     const imageVersion = 1;
