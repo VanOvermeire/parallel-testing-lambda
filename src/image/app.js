@@ -50,7 +50,7 @@ async function writeFile(filePath, data) {
 const downloadFile = async (params) => {
     const data = await s3.getObject(params).promise();
     // console.log(__dirname + params.Key);
-    await writeFile(`${APP_DIR_IN_TMP}/${params.Key}`, data.toString());
+    await writeFile(`${APP_DIR_IN_TMP}/${params.Key}`, data.Body.toString());
 };
 
 const downloadFiles = async (bucket, keys) => {
