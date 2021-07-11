@@ -1,3 +1,4 @@
+const {setChangesToUploaded} = require("./helpers/config");
 const {uploadChangesToS3} = require("./helpers/s3");
 const {resetCurrentChanges} = require("./helpers/config");
 const {execSync} = require('child_process');
@@ -11,13 +12,13 @@ const {deployBaseInfra, deploySfInfra} = require("./helpers/deployer");
 process.env.PATH = process.env.PATH + ':/usr/local/bin'; // TODO needed for execSync? test!
 
 const currentDir = __dirname;
-const destinationDir = `${currentDir}/application`; // TODO maybe specific - so we do not overwrite copies with one another
+const destinationDir = `${currentDir}/application`; // TODO make more specific? so we do not overwrite copies with one another
 
 const docker = ({ repoUri, repoName, region, imageVersion}) => {
     console.log(`Building custom lambda image and pushing to ${repoUri}...`);
     execSync(
         `./docker_run.sh ${repoUri} ${repoName} ${region} ${imageVersion}`,
-        // {stdio : 'pipe' } // TODO
+        {stdio : 'pipe' }
     );
 };
 
@@ -47,6 +48,8 @@ const setupTasks = async (projectInfo) => {
 
     const {stepFunctionArn} = await deploySfInfra(projectInfo.name, projectInfo.region, repoUri, bucketName, projectInfo.imageVersion.toString());
 
+    await resetCurrentChanges(); // needed when updating - there might be a changes file
+
     return {
         ...projectInfo,
         bucketName,
@@ -60,6 +63,7 @@ const setupTasks = async (projectInfo) => {
 
 const runWithoutNewContainer = async (projectInfo, changes) => {
     const keys = await uploadChangesToS3(projectInfo, changes);
+    await setChangesToUploaded(projectInfo.name);
     await startExecution(projectInfo, keys);
 }
 
@@ -74,7 +78,6 @@ const runWithNewContainer = async (projectInfo, allFiles) => {
 
     await startExecution(projectInfo);
 
-    // TODO do we have to safe the new arn? maybe for the best
     return {
         ...projectInfo,
         stepFunctionArn,
@@ -102,10 +105,7 @@ const runTasks = async (projectInfo, changes) => {
             }
         }
     }
-
-    await runWithoutNewContainer(projectInfo, changes);
-
-    return projectInfo;
+    return await runWithoutNewContainer(projectInfo, changes);
 
     // const updatedProjectInfo = {...projectInfo};
     //
@@ -135,42 +135,6 @@ const runTasks = async (projectInfo, changes) => {
     //
     // return updatedProjectInfo;
 }
-
-// const script = async (projectInfo) => {
-//     const updatedProjectInfo = {...projectInfo};
-//
-//     if(projectInfo.firstRun) {
-//         const { bucketName, repoName, repoUri } = await deployBaseInfra(projectInfo);
-//         updatedProjectInfo.bucketName = bucketName;
-//         updatedProjectInfo.repoName = repoName;
-//         updatedProjectInfo.repoUri = repoUri;
-//     }
-//
-//     const toIgnore = await getGitIgnoreList(projectInfo.path);
-//     copy(projectInfo.path, destinationDir, toIgnore);
-//     const allFiles = await getFiles(destinationDir, toIgnore);
-//     await modifyPackageJsons(destinationDir, allFiles);
-//
-//     updatedProjectInfo.allDependencies = await gatherAllDependencies(allFiles);
-//     const dependenciesChanged = haveDependenciesChanged(projectInfo, updatedProjectInfo);
-//
-//     if(projectInfo.firstRun || dependenciesChanged) {
-//         console.log('Changes to dependencies. Running install and updating docker image')
-//         runNpmInstall(allFiles);
-//         docker(updatedProjectInfo);
-//     } else {
-//         console.log('No changes to dependencies detected.');
-//     }
-//
-//     if(projectInfo.firstRun || dependenciesChanged) {
-//         const {stepFunctionArn} = await deploySfInfra(updatedProjectInfo);
-//         updatedProjectInfo.sfArn = stepFunctionArn;
-//         updatedProjectInfo.firstRun = false;
-//     }
-//     await startExecution(updatedProjectInfo, dependenciesChanged);
-//
-//     return updatedProjectInfo;
-// }
 
 module.exports = {
     runTasks,

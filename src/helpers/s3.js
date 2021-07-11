@@ -18,7 +18,7 @@ const uploadChangesToS3 = async (projectConfig, changes) => {
         .filter(entry => !entry[1].uploaded)
         .map(entry => entry[0])
         .map(path => ({path, key: path.replace(`${projectConfig.path}/`, ''), bucket: projectConfig.bucketName}))
-        // .map(uploadChangeToS3)
+        .map(uploadChangeToS3)
     );
 };
 

@@ -41,8 +41,8 @@ const runTestIfRequested = async (projectConfig) => {
 
         if(changes && Object.values(changes).some(v => !v.uploaded)) {
             console.log(`Running for ${projectConfig.name} with commands ${projectConfig.commands}...`);
-            // const updatedProjectConfig = await runTasks(projectConfig, changes);
-            // await updateConfig(updatedProjectConfig);
+            const updatedProjectConfig = await runTasks(projectConfig, changes);
+            await updateConfig(updatedProjectConfig);
         } else {
             console.log('Did not find any changes to project!');
         }

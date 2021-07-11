@@ -28,13 +28,13 @@ const resetCurrentChanges = async (projectName) => {
 
 const writeConfig = async (config) => {
     await writeFile(CONFIG_PATH, JSON.stringify(config));
-}
+};
 
 const updateConfig = async (projectInfo) => {
     const config = await getCurrentConfig();
     config.projects[projectInfo.name] = projectInfo;
     await writeConfig(config);
-}
+};
 
 const addToChanges = (projectName) => async (change) => {
     const currentChanges = await getCurrentChanges(projectName);
@@ -44,6 +44,19 @@ const addToChanges = (projectName) => async (change) => {
     await writeFile(changesFilePath(projectName), JSON.stringify(combined));
 };
 
+const setChangesToUploaded = async (projectName) => {
+    const currentChanges = await getCurrentChanges(projectName);
+    const allUploaded = Object.fromEntries(
+        Object.entries(currentChanges).map(entry => {
+            entry[1].uploaded = true;
+            return entry;
+        })
+    );
+
+    await writeFile(changesFilePath(projectName), JSON.stringify(allUploaded));
+
+}
+
 module.exports = {
     getCurrentConfig,
     getCurrentChanges,
@@ -51,4 +64,5 @@ module.exports = {
     writeConfig,
     updateConfig,
     addToChanges,
+    setChangesToUploaded,
 };
