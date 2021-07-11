@@ -8,7 +8,7 @@ const s3 = new AWS.S3();
 const TMP_DIR = '/tmp';
 const APP_DIR_IN_TMP = `${TMP_DIR}/application`;
 
-function isExists(path) {
+function exists(path) {
     return new Promise((resolve) => {
         fs.access(path, (err) => {
             if (err) {
@@ -21,7 +21,7 @@ function isExists(path) {
 
 async function writeFile(filePath, data) {
     const dirname = path.dirname(filePath);
-    const exist = await isExists(dirname);
+    const exist = await exists(dirname);
 
     return new Promise((resolve, reject) => {
         if (!exist) {
@@ -49,7 +49,6 @@ async function writeFile(filePath, data) {
 
 const downloadFile = async (params) => {
     const data = await s3.getObject(params).promise();
-    // console.log(__dirname + params.Key);
     await writeFile(`${APP_DIR_IN_TMP}/${params.Key}`, data.Body.toString());
 };
 
@@ -60,34 +59,30 @@ const downloadFiles = async (bucket, keys) => {
 };
 
 exports.handler = async (event) => {
-    console.log(event);
+    console.log(event); // remove?
     const { command, location, changes } = event;
 
     try {
         execSync('cp -r application/ /tmp');
 
         if(changes) {
-            console.log('downloading files'); // TODO remove
             await downloadFiles(process.env.BUCKET, changes);
         }
 
         const npmCommand = `npm run ${command}`;
         const dirInTemp = `${APP_DIR_IN_TMP}/${location}`;
 
-        const tempie = execSync('ls -al', {cwd: dirInTemp}) // TODO remove
-        console.log(tempie.toString());
-
         console.log(`Running ${npmCommand} in ${dirInTemp}`);
         const result = execSync(npmCommand, {cwd: dirInTemp});
 
-        console.log(result); // maybe remove?
+        console.log(result); // remove?
 
         return {
             succeeded: true,
             result: JSON.stringify({command, location }),
         };
     } catch (err) {
-        console.warn(`Tests failed with error: ${JSON.stringify(err)}`);
+        console.warn(`Tests failed with error: ${JSON.stringify(err.message)}`);
         return {
             succeeded: false,
             result: JSON.stringify({command, location }),

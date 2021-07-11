@@ -1,13 +1,12 @@
 const { readdir, readFile, writeFile } = require('fs/promises');
 const { resolve, relative } = require('path');
-const copydir = require('copy-dir');
 const {execSync} = require('child_process');
-
-const ALWAYS_TO_IGNORE = ['.git', 'node_modules', 'coverage'];
+const copydir = require('copy-dir');
+const {ALWAYS_TO_IGNORE, GLOBAL_COMMANDS} = require("./constants");
 
 const isPackageJson = (file) => file.endsWith('package.json');
 
-// TODO not taking into account stuff like *.iml
+// not taking into account stuff like *.iml!
 const getGitIgnoreList = async (projectPath) => {
     const res = await readFile(`${projectPath}/.gitignore`);
     return res.toString().split('\n')
@@ -16,7 +15,7 @@ const getGitIgnoreList = async (projectPath) => {
         .filter(el => !el.startsWith('#'));
 };
 
-const findPackageJsonDirs = (allFiles) => findPackageJsonFiles(allFiles).map(f => f.replace('package.json', ''));
+const findPackageJsonDirs = (allFiles) => findPackageJsonFiles(allFiles).map(f => f.replace('/package.json', ''));
 const findPackageJsonDirsInCopy = (allFiles) => findPackageJsonDirs(allFiles);
 
 const findPackageJsonFiles = (allFiles) => allFiles.filter(isPackageJson);
@@ -57,15 +56,13 @@ const doesNotHaveModifiedAsDependency = (modify, fileContentAsString) => {
 }
 
 const modifyPackageJsons = async (applicationDir, allFiles) => {
-    const toModify = ['jest']; // TODO should somehow build a proper list (also add eslint)
-
     const packageJsonFiles = findPackageJsonFilesInCopy(allFiles);
 
     for (const filename of packageJsonFiles) {
         const fileContent = await readFile(filename);
         let fileContentAsString = fileContent.toString();
 
-        for(const modify of toModify) {
+        for(const modify of GLOBAL_COMMANDS) {
             if(doesNotHaveModifiedAsDependency(modify, fileContentAsString)) {
                 console.log(`${modify} is set globally in ${filename}. That will not work in lambda, so pointing to actual location`); // OR install globally
                 const refTo = `${applicationDir}/node_modules/${modify}/bin/${modify}.js`;
@@ -98,6 +95,14 @@ const gatherAllDependencies = async (allFiles) => {
         );
 };
 
+// NOTE: this filters out the root package.json as one we do not want to run!
+const gatherAllRunLocations = (ourCopyDir) => async (allFiles) => {
+    return findPackageJsonDirsInCopy(allFiles)
+        .map(fileName => fileName.replace(ourCopyDir, ''))
+        .filter(fileName => fileName)
+        .map(fileName => fileName.startsWith('/') ? fileName.substr(1, fileName.length) : fileName);
+};
+
 module.exports = {
     getGitIgnoreList,
     getFiles,
@@ -105,4 +110,5 @@ module.exports = {
     copy,
     modifyPackageJsons,
     runNpmInstall,
+    gatherAllRunLocations,
 };

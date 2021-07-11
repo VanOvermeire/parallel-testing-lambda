@@ -8,7 +8,7 @@
 
 I also did some experiments with both CodeBuild en ECS Tasks. On the plus, those solutions are more flexible, 
 and require less set up. On the other hand, startup times are an issue (it can take a while before your task is even ready to start your tests) 
-and at a glance the costs seem higher as well.
+and at a glance the costs seem higher as well. Also, I wanted to see if I actually *could* get this running in Lambda...
 
 ## Usage
 
@@ -43,8 +43,12 @@ because there are a lot of them, or it is taking a while to handle Typescript tr
 
 ## Limitations
 
-- the total size of your project *after npm install* should be below 500 MB
+- built-in assumptions about what your project looks like (for example a root package json that contains a lot but does not itself have tests, 
+  at max delegating to other package.json files)
+- the total size of your project *after npm install* should be below 500 MB (an unfortunate limitation due to the fact that we can
+  only execute commands in the tmp folder of Lambda)
 - *Individual test commands* will timeout after 5 minutes. So if you have a single package with hundreds of Typescript unit tests, that might be a problem
+  (but nothing is stopping you from changing the relevant yaml file and increasing the timeout to 15 minutes)
 
 ## Example estimates
 
@@ -74,6 +78,7 @@ With provisioned capacity enabled (not yet included in this project) the speed w
 - Step Functions: +- 0.1 dollars
 - S3: +- 0.1 dollars 
 - ECR: +- 0.3 dollars? (depends a lot on how many times your dependencies - and thus your image - change)
+- Cloudwatch ?
 - Total: less than 10 dollars per month
 
 So expect some costs if you use this intensively, but nothing massive.
@@ -84,3 +89,7 @@ With provisioned capacity enabled (not yet included in this project) there is an
 
 - does not take into account deletes or moves of files
 - will fail on a large amount of changes (because event payload will be too big)
+- command to retrieve relevant cloudwatch logs
+- cleanup commands would be nice
+- only use now is with human interaction, as a command-line utility or what-not a different entrypoint would be needed
+- also the TODOs in the project itself...

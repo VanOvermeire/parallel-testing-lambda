@@ -1,9 +1,7 @@
 const inquirer = require('inquirer');
-const {updateQuestion} = require("./helpers/questions");
-const {configQuestion} = require("./helpers/questions");
+const {updateQuestion, configQuestion, setupQuestions} = require("./helpers/questions");
 const {setupTasks} = require("./tasks");
 const {writeConfig, getCurrentConfig} = require("./helpers/config");
-const {setupQuestions} = require("./helpers/questions");
 
 const addProject = async (currentConfig, answers) => {
     const projects = currentConfig.projects || {};

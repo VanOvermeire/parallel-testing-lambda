@@ -25,7 +25,20 @@ const waitForExecutionToFinish = (executionArn) => {
     });
 };
 
+
 const buildInput = (projectInfo, changes) => {
+    // TODO actually use this
+    const tasks = projectInfo.locations.flatMap(location => {
+        return projectInfo.commands.map(command => {
+            return {
+                command,
+                location,
+                changes,
+            }
+        });
+    });
+    console.log(tasks);
+
     const input = {
         name: projectInfo.name,
         tasks: [
@@ -41,8 +54,6 @@ const buildInput = (projectInfo, changes) => {
 
 const startExecution = async (projectInfo, changes) => {
     AWS.config.update({region: projectInfo.region});
-    console.log(`Running tests in ${projectInfo.stepFunctionArn}`);
-    console.log(changes) // TODO remove
 
     const result = await stepfunctions.startExecution({
         stateMachineArn: projectInfo.stepFunctionArn,
@@ -55,10 +66,9 @@ const startExecution = async (projectInfo, changes) => {
     if(success) {
         console.log('All tests ran successfully!');
     } else {
-        const failedTests = JSON.parse(results.output || '[]').filter(r => r.succeeded === false);
+        const failedTests = JSON.parse(results.output || '[]').filter(r => r.succeeded === false).map(r => r.result);
         console.log('Some tests failed, see output below. For more details, check the cloudwatch logs');
         console.log(failedTests);
-        process.exit(1);
     }
 };
 

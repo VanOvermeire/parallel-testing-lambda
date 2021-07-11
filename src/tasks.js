@@ -1,18 +1,15 @@
-const {setChangesToUploaded} = require("./helpers/config");
-const {uploadChangesToS3} = require("./helpers/s3");
-const {resetCurrentChanges} = require("./helpers/config");
 const {execSync} = require('child_process');
-
+const {copy, gatherAllRunLocations, getFiles, getGitIgnoreList, modifyPackageJsons, runNpmInstall, gatherAllDependencies} = require("./helpers/fileHandlers");
+const {uploadChangesToS3} = require("./helpers/s3");
+const {resetCurrentChanges, setChangesToUploaded} = require("./helpers/config");
 const {haveDependenciesChanged} = require("./helpers/dependencies");
 const {startExecution} = require("./helpers/execution");
-const {copy} = require("./helpers/fileHandlers");
-const {getFiles, getGitIgnoreList, modifyPackageJsons, runNpmInstall, gatherAllDependencies} = require("./helpers/fileHandlers");
 const {deployBaseInfra, deploySfInfra} = require("./helpers/deployer");
 
 process.env.PATH = process.env.PATH + ':/usr/local/bin'; // TODO needed for execSync? test!
 
 const currentDir = __dirname;
-const destinationDir = `${currentDir}/application`; // TODO make more specific? so we do not overwrite copies with one another
+const destinationDir = `${currentDir}/application`; // TODO make more specific? so we do not overwrite copies with one another... Other solution: delete application copy
 
 const docker = ({ repoUri, repoName, region, imageVersion}) => {
     console.log(`Building custom lambda image and pushing to ${repoUri}...`);
@@ -42,6 +39,7 @@ const setupTasks = async (projectInfo) => {
 
     const allFiles = await prepareCopy(projectInfo.path)
         .then(buildCopy);
+    const locations = gatherAllRunLocations(destinationDir)(allFiles);
     const allDependencies = await gatherAllDependencies(allFiles);
 
     docker({repoUri, repoName, region: projectInfo.region, imageVersion: projectInfo.imageVersion});
@@ -55,6 +53,7 @@ const setupTasks = async (projectInfo) => {
         bucketName,
         repoName,
         repoUri,
+        locations,
         allDependencies,
         stepFunctionArn,
         imageVersion: projectInfo.imageVersion + 1,
@@ -65,6 +64,7 @@ const runWithoutNewContainer = async (projectInfo, changes) => {
     const keys = await uploadChangesToS3(projectInfo, changes);
     await setChangesToUploaded(projectInfo.name);
     await startExecution(projectInfo, keys);
+    return projectInfo;
 }
 
 // TODO changes for infra, image version, etc.
@@ -94,6 +94,7 @@ const runTasks = async (projectInfo, changes) => {
     if(changesToPackageJson) {
         console.log('changes to package json'); // TODO remove
         const allFiles = await prepareCopy(projectInfo.path);
+        const locations = gatherAllRunLocations(destinationDir)(allFiles);
         const newDependencies = await gatherAllDependencies(allFiles);
 
         if(haveDependenciesChanged(projectInfo.allDependencies, newDependencies)) {
@@ -103,6 +104,7 @@ const runTasks = async (projectInfo, changes) => {
 
             return {
                 ...projectInfo,
+                locations,
                 allDependencies: newDependencies,
             }
         }
