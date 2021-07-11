@@ -55,8 +55,7 @@ const startExecution = async (projectInfo, changes) => {
     if(success) {
         console.log('All tests ran successfully!');
     } else {
-        const output = results.output || [];
-        const failedTests = JSON.parse(output.filter(r => r.succeeded === false));
+        const failedTests = JSON.parse(results.output || '[]').filter(r => r.succeeded === false);
         console.log('Some tests failed, see output below. For more details, check the cloudwatch logs');
         console.log(failedTests);
         process.exit(1);

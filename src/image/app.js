@@ -71,7 +71,6 @@ exports.handler = async (event) => {
             await downloadFiles(process.env.BUCKET, changes);
         }
 
-
         const npmCommand = `npm run ${command}`;
         const dirInTemp = `${APP_DIR_IN_TMP}/${location}`;
 
