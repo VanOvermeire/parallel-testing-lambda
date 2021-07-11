@@ -42,6 +42,7 @@ const buildInput = (projectInfo, changes) => {
 const startExecution = async (projectInfo, changes) => {
     AWS.config.update({region: projectInfo.region});
     console.log(`Running tests in ${projectInfo.stepFunctionArn}`);
+    console.log(changes) // TODO remove
 
     const result = await stepfunctions.startExecution({
         stateMachineArn: projectInfo.stepFunctionArn,
@@ -54,7 +55,8 @@ const startExecution = async (projectInfo, changes) => {
     if(success) {
         console.log('All tests ran successfully!');
     } else {
-        const failedTests = JSON.parse(results.output.filter(r => r.succeeded === false));
+        const output = results.output || [];
+        const failedTests = JSON.parse(output.filter(r => r.succeeded === false));
         console.log('Some tests failed, see output below. For more details, check the cloudwatch logs');
         console.log(failedTests);
         process.exit(1);

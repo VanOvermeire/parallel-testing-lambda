@@ -1,5 +1,5 @@
 const {execSync} = require('child_process')
-const fs = require('fs/promises');
+const fs = require('fs'); // no fs promises in node container
 const path = require('path');
 const AWS = require("aws-sdk");
 
@@ -8,28 +8,43 @@ const s3 = new AWS.S3();
 const TMP_DIR = '/tmp';
 const APP_DIR_IN_TMP = `${TMP_DIR}/application`;
 
-async function isExists(path) {
-    try {
-        await fs.access(path);
-        return true;
-    } catch {
-        return false;
-    }
+function isExists(path) {
+    return new Promise((resolve) => {
+        fs.access(path, (err) => {
+            if (err) {
+                return resolve(false);
+            }
+            return resolve(true)
+        });
+    });
 }
 
 async function writeFile(filePath, data) {
-    try {
-        const dirname = path.dirname(filePath);
-        const exist = await isExists(dirname);
+    const dirname = path.dirname(filePath);
+    const exist = await isExists(dirname);
 
+    return new Promise((resolve, reject) => {
         if (!exist) {
-            await fs.mkdir(dirname, {recursive: true});
+            fs.mkdir(dirname, {recursive: true}, (err) => {
+                if(err) {
+                    return reject(err);
+                }
+                fs.writeFile(filePath, data, 'utf8', (err) => {
+                    if(err) {
+                        return reject(err);
+                    }
+                    return resolve();
+                })
+            });
+        } else {
+            fs.writeFile(filePath, data, 'utf8', (err) => {
+                if (err) {
+                    return reject(err);
+                }
+                return resolve();
+            })
         }
-
-        await fs.writeFile(filePath, data, 'utf8');
-    } catch (err) {
-        throw new Error(err);
-    }
+    });
 }
 
 const downloadFile = async (params) => {
@@ -52,11 +67,16 @@ exports.handler = async (event) => {
         execSync('cp -r application/ /tmp');
 
         if(changes) {
+            console.log('downloading files'); // TODO remove
             await downloadFiles(process.env.BUCKET, changes);
         }
 
+
         const npmCommand = `npm run ${command}`;
         const dirInTemp = `${APP_DIR_IN_TMP}/${location}`;
+
+        const tempie = execSync('ls -al', {cwd: dirInTemp}) // TODO remove
+        console.log(tempie.toString());
 
         console.log(`Running ${npmCommand} in ${dirInTemp}`);
         const result = execSync(npmCommand, {cwd: dirInTemp});

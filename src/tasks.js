@@ -37,7 +37,7 @@ const buildCopy = async (allFiles) => {
 }
 
 const setupTasks = async (projectInfo) => {
-    console.log('Creating necessary infrastructure and container. This might take a while!');
+    console.log('Creating or updating infrastructure and container. This might take a while!');
     const {bucketName, repoName, repoUri} = await deployBaseInfra(projectInfo.name, projectInfo.region);
 
     const allFiles = await prepareCopy(projectInfo.path)
@@ -48,7 +48,7 @@ const setupTasks = async (projectInfo) => {
 
     const {stepFunctionArn} = await deploySfInfra(projectInfo.name, projectInfo.region, repoUri, bucketName, projectInfo.imageVersion.toString());
 
-    await resetCurrentChanges(); // needed when updating - there might be a changes file
+    await resetCurrentChanges(projectInfo.name); // needed when updating - there might be a changes file
 
     return {
         ...projectInfo,
@@ -92,12 +92,14 @@ const runTasks = async (projectInfo, changes) => {
     const changesToPackageJson = Object.keys(changes).some(k => k.endsWith('package.json'));
 
     if(changesToPackageJson) {
+        console.log('changes to package json'); // TODO remove
         const allFiles = await prepareCopy(projectInfo.path);
         const newDependencies = await gatherAllDependencies(allFiles);
 
         if(haveDependenciesChanged(projectInfo.allDependencies, newDependencies)) {
+            console.log('need new container'); // TODO remove?
             await runWithNewContainer(projectInfo, allFiles);
-            await resetCurrentChanges();
+            await resetCurrentChanges(projectInfo.name);
 
             return {
                 ...projectInfo,
