@@ -3,6 +3,8 @@ const {updateQuestion, configQuestion, setupQuestions} = require("./helpers/ques
 const {setupTasks} = require("./tasks");
 const {writeConfig, getCurrentConfig} = require("./helpers/config");
 
+// TODO do not allow update if there are no projects
+// TODO would be nice to detect whether docker is up and running
 const addProject = async (currentConfig, answers) => {
     const projects = currentConfig.projects || {};
     const path = answers.projectPath.endsWith('/') ? answers.projectPath.substr(0, answers.projectPath.length - 1) : answers.projectPath;

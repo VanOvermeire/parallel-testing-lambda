@@ -96,7 +96,7 @@ const gatherAllDependencies = async (allFiles) => {
 };
 
 // NOTE: this filters out the root package.json as one we do not want to run!
-const gatherAllRunLocations = (ourCopyDir) => async (allFiles) => {
+const gatherAllRunLocations = (ourCopyDir) => (allFiles) => {
     return findPackageJsonDirsInCopy(allFiles)
         .map(fileName => fileName.replace(ourCopyDir, ''))
         .filter(fileName => fileName)

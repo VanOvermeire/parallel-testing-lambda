@@ -6,7 +6,7 @@ const {haveDependenciesChanged} = require("./helpers/dependencies");
 const {startExecution} = require("./helpers/execution");
 const {deployBaseInfra, deploySfInfra} = require("./helpers/deployer");
 
-process.env.PATH = process.env.PATH + ':/usr/local/bin'; // TODO needed for execSync? test!
+process.env.PATH = process.env.PATH + ':/usr/local/bin'; // TODO needed for execSync? check!
 
 const currentDir = __dirname;
 const destinationDir = `${currentDir}/application`; // TODO make more specific? so we do not overwrite copies with one another... Other solution: delete application copy
@@ -67,7 +67,6 @@ const runWithoutNewContainer = async (projectInfo, changes) => {
     return projectInfo;
 }
 
-// TODO changes for infra, image version, etc.
 const runWithNewContainer = async (projectInfo, allFiles) => {
     console.log('Changes to dependencies, need to update container');
     await buildCopy(allFiles);
@@ -84,21 +83,15 @@ const runWithNewContainer = async (projectInfo, allFiles) => {
     }
 }
 
-// TODO
-//  if package json AND dep change, new docker is needed + update to config
-//  if there are too many temp files, force a new docker build in background?
-//  hide config files with . ?
 const runTasks = async (projectInfo, changes) => {
     const changesToPackageJson = Object.keys(changes).some(k => k.endsWith('package.json'));
 
     if(changesToPackageJson) {
-        console.log('changes to package json'); // TODO remove
         const allFiles = await prepareCopy(projectInfo.path);
         const locations = gatherAllRunLocations(destinationDir)(allFiles);
         const newDependencies = await gatherAllDependencies(allFiles);
 
         if(haveDependenciesChanged(projectInfo.allDependencies, newDependencies)) {
-            console.log('need new container'); // TODO remove?
             await runWithNewContainer(projectInfo, allFiles);
             await resetCurrentChanges(projectInfo.name);
 

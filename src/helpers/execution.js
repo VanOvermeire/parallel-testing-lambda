@@ -27,7 +27,6 @@ const waitForExecutionToFinish = (executionArn) => {
 
 
 const buildInput = (projectInfo, changes) => {
-    // TODO actually use this
     const tasks = projectInfo.locations.flatMap(location => {
         return projectInfo.commands.map(command => {
             return {
@@ -37,17 +36,10 @@ const buildInput = (projectInfo, changes) => {
             }
         });
     });
-    console.log(tasks);
 
     const input = {
         name: projectInfo.name,
-        tasks: [
-            {
-                command: 'test',
-                location: 'lambdas/autologin',
-                changes,
-            }
-        ]
+        tasks,
     }
     return JSON.stringify(input);
 };
